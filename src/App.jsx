@@ -6,9 +6,13 @@ import DiveSummary from './components/DiveSummary';
 import DiveTable from './components/DiveTable';
 import ShareLink from './components/ShareLink';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
-import { calculateBuhlmann } from './utils/buhlmann';
+import { calculateBuhlmann, calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
 import { calculateRGBM } from './utils/rgbm';
+import { calculateHaldane } from './utils/haldane';
+import { calculateWorkman } from './utils/workman';
+import { calculateThalmann } from './utils/thalmann';
+import { calculateDCIEM } from './utils/dciem';
 import './App.css';
 
 function App() {
@@ -64,8 +68,33 @@ function App() {
     const baseProfile = calculateDiveProfile(stops, descentRate, ascentRate);
     let decoInfo = null;
 
-    if (algorithm === 'buhlmann') {
-      decoInfo = calculateBuhlmann(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+    if (algorithm === 'zhl16a') {
+      decoInfo = calculateZHL16A(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'zhl16b') {
+      decoInfo = calculateZHL16B(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'zhl16c') {
+      decoInfo = calculateZHL16C(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'zhl12') {
+      decoInfo = calculateZHL12(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'zhl6') {
+      decoInfo = calculateZHL6(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'zhl8adt') {
+      decoInfo = calculateZHL8ADT(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'buhlmann') {
+      // Legacy support - default to ZHL-16C
+      decoInfo = calculateZHL16C(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
       const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
       return { ...fullProfile, decoInfo };
     } else if (algorithm === 'vpm') {
@@ -74,6 +103,22 @@ function App() {
       return { ...fullProfile, decoInfo };
     } else if (algorithm === 'rgbm') {
       decoInfo = calculateRGBM(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'haldane') {
+      decoInfo = calculateHaldane(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'workman') {
+      decoInfo = calculateWorkman(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'thalmann') {
+      decoInfo = calculateThalmann(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'dciem') {
+      decoInfo = calculateDCIEM(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
       const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
       return { ...fullProfile, decoInfo };
     } else {

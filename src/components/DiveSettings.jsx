@@ -5,11 +5,14 @@ export default function DiveSettings({
   fO2, onFO2Change,
   gfLow, onGfLowChange,
   gfHigh, onGfHighChange,
+  descentRate, onDescentRateChange,
+  ascentRate, onAscentRateChange,
   color = '#4fc3f7',
 }) {
   return (
     <div className="dive-settings" style={{ borderColor: `${color}40` }}>
       <h3 style={{ color }}>Settings</h3>
+      
       <div className="setting-row">
         <label>Algorithm</label>
         <select
@@ -21,6 +24,34 @@ export default function DiveSettings({
             <option key={key} value={key}>{algo.name}</option>
           ))}
         </select>
+      </div>
+
+      <div className="setting-row">
+        <label>Descent Rate</label>
+        <div className="rate-input">
+          <input
+            type="number"
+            min="1"
+            max="30"
+            value={descentRate}
+            onChange={(e) => onDescentRateChange(Math.max(1, Number(e.target.value) || 18))}
+          />
+          <span>m/min</span>
+        </div>
+      </div>
+
+      <div className="setting-row">
+        <label>Ascent Rate</label>
+        <div className="rate-input">
+          <input
+            type="number"
+            min="1"
+            max="30"
+            value={ascentRate}
+            onChange={(e) => onAscentRateChange(Math.max(1, Number(e.target.value) || 9))}
+          />
+          <span>m/min</span>
+        </div>
       </div>
 
       {algorithm !== 'none' && (

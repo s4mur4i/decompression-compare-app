@@ -2,6 +2,7 @@ import { ALGORITHMS } from '../utils/buhlmann';
 
 export default function DiveSettings({
   descentRate, onDescentRateChange,
+  ascentRate, onAscentRateChange,
   algorithm, onAlgorithmChange,
   fO2, onFO2Change,
   gfLow, onGfLowChange,
@@ -18,7 +19,21 @@ export default function DiveSettings({
             min="1"
             max="30"
             value={descentRate}
-            onChange={(e) => onDescentRateChange(Math.max(1, Number(e.target.value) || 9))}
+            onChange={(e) => onDescentRateChange(Math.max(1, Number(e.target.value) || 18))}
+          />
+          <span>m/min</span>
+        </div>
+      </div>
+
+      <div className="setting-row">
+        <label>Ascent Rate</label>
+        <div className="rate-input">
+          <input
+            type="number"
+            min="1"
+            max="30"
+            value={ascentRate}
+            onChange={(e) => onAscentRateChange(Math.max(1, Number(e.target.value) || 9))}
           />
           <span>m/min</span>
         </div>
@@ -61,7 +76,7 @@ export default function DiveSettings({
                 min="10"
                 max="100"
                 value={gfLow}
-                onChange={(e) => onGfLowChange(Math.min(100, Math.max(10, Number(e.target.value) || 30)))}
+                onChange={(e) => onGfLowChange(Math.min(100, Math.max(10, Number(e.target.value) || 50)))}
               />
               <span>%</span>
             </div>

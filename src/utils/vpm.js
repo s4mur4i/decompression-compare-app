@@ -1,59 +1,58 @@
 /**
- * VPM-B (Varying Permeability Model) decompression algorithm implementation.
+ * VPM-B (Varying Permeability Model) decompression algorithm.
  * 
- * Based on Yount's varying permeability model with Boyle's law compensation.
- * Uses bubble mechanics with initial bubble radius and critical volume concepts.
+ * Based on Yount's bubble nucleation model. Key concept: bubbles form when
+ * tissue supersaturation exceeds a threshold determined by bubble radius.
+ * VPM-B adds Boyle's law compensation for bubble growth during ascent.
+ * 
+ * Produces deeper first stops than Bühlmann — characteristic of bubble models.
  */
 
-// ZHL-16C compartment half-times (same as Bühlmann)
-const VPM_HALFTIMES = [
-  4.0, 8.0, 12.5, 18.5, 27.0, 38.3, 54.3, 77.0,
-  109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0
+// ZHL-16C compartment parameters [halfTime, a, b]
+const COMPARTMENTS = [
+  [4.0, 1.2599, 0.5050],
+  [8.0, 1.0000, 0.6514],
+  [12.5, 0.8618, 0.7222],
+  [18.5, 0.7562, 0.7825],
+  [27.0, 0.6200, 0.8126],
+  [38.3, 0.5043, 0.8434],
+  [54.3, 0.4410, 0.8693],
+  [77.0, 0.4000, 0.8910],
+  [109.0, 0.3750, 0.9092],
+  [146.0, 0.3500, 0.9222],
+  [187.0, 0.3295, 0.9319],
+  [239.0, 0.3065, 0.9403],
+  [305.0, 0.2835, 0.9477],
+  [390.0, 0.2610, 0.9544],
+  [498.0, 0.2480, 0.9602],
+  [635.0, 0.2327, 0.9653],
 ];
 
-// VPM-B specific parameters
-const VPM_PARAMS = {
-  // Physical constants
-  SURFACE_TENSION: 0.0179, // N/m (surface tension at body temperature)
-  SKIN_COMPRESSION: 0.0257, // N/m (skin compression)
-  INITIAL_RADIUS: 0.8e-6, // m (initial bubble nucleus radius ~0.8μm)
-  WATER_VAPOR_PRESSURE: 0.0627, // bar (water vapor pressure in lungs)
-  SURFACE_PRESSURE: 1.01325, // bar (surface atmospheric pressure)
-  
-  // VPM-B specific
-  CRITICAL_VOLUME_LAMBDA: 7500, // Parameter for critical volume calculation
-  NUCLEATION_PRESSURE: 1.15, // bar (pressure at which nuclei are generated)
-  
-  // Compartment-specific a/b values for critical radius calculation
-  // Based on empirical data fitting to VPM-B validation
-  A_VALUES: [
-    1.2599, 1.0000, 0.8618, 0.7562, 0.6200, 0.5043, 0.4410, 0.4000,
-    0.3750, 0.3500, 0.3295, 0.3065, 0.2835, 0.2610, 0.2480, 0.2327
-  ],
-  B_VALUES: [
-    0.5050, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910,
-    0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653
-  ]
-};
+// VPM-B physical constants
+const GAMMA = 0.0179;          // Surface tension (N/m)
+const GAMMA_C = 0.0257;        // Skin compression (crumbling compression) (N/m)
+const P_SURFACE = 1.01325;     // Surface pressure (bar)
+const P_WATER_VAPOR = 0.0627;  // Water vapor pressure (bar)
 
-/**
- * Convert depth in meters to absolute pressure in bar (saltwater).
- */
+// Initial critical radii for N2 (meters) — from VPM literature
+// These represent the smallest bubble nuclei that can grow at surface pressure
+const R0_N2 = 0.90e-6; // ~0.9 micrometers for N2
+
+// Critical volume lambda — controls how much total bubble volume is tolerated
+const LAMBDA = 7500;
+
 function depthToPressure(depth) {
-  return VPM_PARAMS.SURFACE_PRESSURE + (depth / 10.0);
+  return P_SURFACE + depth / 10.0;
 }
 
-/**
- * Calculate inspired gas pressure at given depth.
- */
+function pressureToDepth(pressure) {
+  return Math.max(0, (pressure - P_SURFACE) * 10.0);
+}
+
 function inspiredPressure(depth, fGas) {
-  const ambientPressure = depthToPressure(depth);
-  return (ambientPressure - VPM_PARAMS.WATER_VAPOR_PRESSURE) * fGas;
+  return (depthToPressure(depth) - P_WATER_VAPOR) * fGas;
 }
 
-/**
- * Schreiner equation for tissue loading during constant or changing pressure.
- */
 function schreiner(p0, pi, time, halfTime) {
   if (time <= 0) return p0;
   const k = Math.LN2 / halfTime;
@@ -61,174 +60,143 @@ function schreiner(p0, pi, time, halfTime) {
 }
 
 /**
- * Calculate critical bubble radius for VPM-B model.
- * Based on surface tension and pressure differential.
+ * Calculate the minimum allowed bubble radius at a given max depth.
+ * As depth increases, higher pressure crushes bubbles smaller,
+ * allowing greater supersaturation tolerance on ascent.
+ * 
+ * r_min = 1 / ( 1/r0 + (P_max - P_surface) / (2 * (gamma + gamma_c)) )
+ * where pressures are in Pascals
  */
-function criticalRadius(ambientPressure, compartment) {
-  const surfaceTension = VPM_PARAMS.SURFACE_TENSION;
-  const skinCompression = VPM_PARAMS.SKIN_COMPRESSION;
-  
-  // Total surface tension effect
-  const totalSurfaceTension = surfaceTension + skinCompression;
-  
-  // Base critical radius calculation
-  const pressureDiff = Math.max(0.1, ambientPressure - VPM_PARAMS.NUCLEATION_PRESSURE);
-  let radius = (2 * totalSurfaceTension) / (pressureDiff * 100000); // Convert bar to Pa
-  
-  // Apply compartment-specific scaling
-  const scaleFactor = VPM_PARAMS.A_VALUES[compartment] / VPM_PARAMS.B_VALUES[compartment];
-  radius *= scaleFactor;
-  
-  return Math.max(VPM_PARAMS.INITIAL_RADIUS, radius);
+function calcMinRadius(maxAmbientPressure) {
+  const deltaPressurePa = (maxAmbientPressure - P_SURFACE) * 100000; // bar to Pa
+  const denom = 1.0 / R0_N2 + deltaPressurePa / (2.0 * (GAMMA + GAMMA_C));
+  return 1.0 / denom;
 }
 
 /**
- * Calculate critical volume parameter for VPM-B.
- * Based on bubble mechanics and tissue-specific parameters.
+ * Calculate the maximum allowable tissue tension (supersaturation) for a compartment.
+ * 
+ * In VPM, the allowed supersaturation gradient is:
+ *   G = (2 * (gamma + gamma_c)) / (r * 100000)   [converted to bar]
+ * 
+ * So max tissue tension = ambient_pressure + G
+ * 
+ * The "-B" variant adjusts this with Boyle's law: as the diver ascends,
+ * bubbles at depth expand. The allowed gradient at shallower stops is reduced
+ * to compensate.
  */
-function criticalVolume(compartment, maxDepth) {
-  const maxPressure = depthToPressure(maxDepth);
-  const radius = criticalRadius(maxPressure, compartment);
-  
-  // Critical volume based on bubble radius and compartment characteristics
-  const volume = (4.0 / 3.0) * Math.PI * Math.pow(radius, 3);
-  
-  // Apply VPM-B scaling factor based on compartment half-time
-  const halfTime = VPM_HALFTIMES[compartment];
-  const scaleFactor = Math.pow(halfTime / 20.0, 0.3); // Empirical scaling
-  
-  return volume * VPM_PARAMS.CRITICAL_VOLUME_LAMBDA * scaleFactor;
+function allowedTissueTension(ambientPressure, minRadius, boyleCompensation) {
+  // Allowed supersaturation gradient from bubble radius
+  const gradientPa = 2.0 * (GAMMA + GAMMA_C) / minRadius;
+  let gradientBar = gradientPa / 100000.0;
+
+  // VPM-B: reduce gradient at shallow stops due to Boyle's law bubble expansion
+  gradientBar = Math.max(0, gradientBar - boyleCompensation);
+
+  return ambientPressure + gradientBar;
 }
 
 /**
- * Calculate VPM-B allowable supersaturation (similar to M-values).
- * Uses bubble mechanics to determine maximum tissue pressure.
+ * Calculate Boyle's law compensation for VPM-B.
+ * Bubbles formed at depth expand as the diver ascends.
+ * This reduces the allowable gradient at shallower stops.
  */
-function vpmAllowableSupersaturation(compartment, ambientPressure, criticalVol) {
-  const radius = criticalRadius(ambientPressure, compartment);
-  const surfaceTension = VPM_PARAMS.SURFACE_TENSION + VPM_PARAMS.SKIN_COMPRESSION;
-  
-  // Bubble pressure from Laplace equation
-  const bubblePressure = ambientPressure + (2 * surfaceTension * 0.01) / radius; // Convert to bar
-  
-  // Critical volume constraint
-  const volumeConstraint = Math.pow(criticalVol / ((4.0 / 3.0) * Math.PI), 1.0 / 3.0);
-  
-  // VPM-B allowable pressure combines bubble pressure and volume constraint
-  const allowablePressure = bubblePressure + (volumeConstraint * 0.1); // Empirical scaling
-  
-  return Math.max(ambientPressure * 1.1, allowablePressure);
-}
+function calcBoyleCompensation(firstStopPressure, currentStopPressure, initialGradient) {
+  if (firstStopPressure <= P_SURFACE || currentStopPressure >= firstStopPressure) return 0;
 
-/**
- * Calculate VPM-B decompression ceiling.
- */
-function vpmCeiling(tissueLoading, maxDepth) {
-  let maxCeiling = 0;
-  
-  for (let i = 0; i < 16; i++) {
-    const pN2 = tissueLoading[i];
-    const criticalVol = criticalVolume(i, maxDepth);
-    
-    // Binary search for ceiling depth
-    let low = 0;
-    let high = maxDepth + 10;
-    
-    for (let iter = 0; iter < 20; iter++) {
-      const testDepth = (low + high) / 2;
-      const testPressure = depthToPressure(testDepth);
-      const allowable = vpmAllowableSupersaturation(i, testPressure, criticalVol);
-      
-      if (pN2 <= allowable) {
-        high = testDepth;
-      } else {
-        low = testDepth;
-      }
-    }
-    
-    const ceilingDepth = Math.max(0, high);
-    if (ceilingDepth > maxCeiling) {
-      maxCeiling = ceilingDepth;
-    }
-  }
-  
-  return maxCeiling;
+  // Boyle's law: P1 * V1 = P2 * V2
+  // Volume ratio = firstStopPressure / currentStopPressure
+  const volumeRatio = firstStopPressure / currentStopPressure;
+
+  // The gradient must be reduced proportionally to bubble expansion
+  const compensation = initialGradient * (volumeRatio - 1.0) * 0.4; // 0.4 empirical damping
+  return Math.max(0, compensation);
 }
 
 /**
  * Run VPM-B decompression calculation.
- * 
- * @param {Array<{depth: number, duration: number, action: string}>} phases - Dive phases from profile
- * @param {number} fO2 - Fraction of O2 in breathing gas (e.g., 0.21 for air)
- * @param {number} gfLow - Conservatism factor (not directly used in VPM-B, kept for interface compatibility)
- * @param {number} gfHigh - Conservatism factor (used to scale VPM-B allowables)
- * @param {number} ascentRate - Ascent rate in m/min
- * @returns {Object} Deco stops and tissue data
  */
-export function calculateVPM(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9) {
+export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9) {
   const fN2 = 1.0 - fO2;
-  
-  // Find maximum depth for critical volume calculations
-  const maxDepth = Math.max(...phases.map(p => p.depth));
-  
-  // Initialize tissue loading at surface equilibrium
+  const maxDepth = Math.max(...phases.map(p => p.depth), 0);
+  const maxAmbientPressure = depthToPressure(maxDepth);
+
+  // Initialize tissues at surface equilibrium
   const surfaceN2 = inspiredPressure(0, fN2);
   const tissueLoading = new Array(16).fill(surfaceN2);
-  
-  // Process each phase to build tissue loading
+
+  // Process dive phases
   for (const phase of phases) {
     const pi = inspiredPressure(phase.depth, fN2);
-    const duration = phase.duration;
-    
     for (let i = 0; i < 16; i++) {
-      tissueLoading[i] = schreiner(tissueLoading[i], pi, duration, VPM_HALFTIMES[i]);
+      tissueLoading[i] = schreiner(tissueLoading[i], pi, phase.duration, COMPARTMENTS[i][0]);
     }
   }
-  
-  // Calculate VPM-B ceiling
-  const rawCeiling = vpmCeiling(tissueLoading, maxDepth);
-  
-  // VPM-B typically starts deeper than Bühlmann
+
+  // Calculate minimum bubble radius from max depth exposure
+  const minRadius = calcMinRadius(maxAmbientPressure);
+
+  // Initial allowed gradient (at first stop)
+  const initialGradientPa = 2.0 * (GAMMA + GAMMA_C) / minRadius;
+  const initialGradientBar = initialGradientPa / 100000.0;
+
+  // Apply conservatism via GF (scale the allowed gradient)
+  const conservatism = gfLow / 100.0;
+
+  // Find ceiling: shallowest depth where all tissues are within VPM limits
+  let rawCeiling = 0;
+  for (let i = 0; i < 16; i++) {
+    // For ceiling calc, use initial gradient (no Boyle compensation yet)
+    const maxGradient = initialGradientBar * conservatism;
+    const requiredAmbient = tissueLoading[i] - maxGradient;
+    const ceilingDepth = pressureToDepth(requiredAmbient);
+    if (ceilingDepth > rawCeiling) rawCeiling = ceilingDepth;
+  }
+
   const firstStopDepth = Math.ceil(rawCeiling / 3) * 3;
-  
-  // Generate VPM-B decompression stops
+
+  // Generate deco stops
   const decoStops = [];
   const workingTissue = [...tissueLoading];
-  
+
   if (firstStopDepth > 0) {
     let currentStop = firstStopDepth;
-    
-    // Apply conservatism scaling based on gfHigh parameter
-    const conservatismFactor = gfHigh / 100.0;
-    
+    const firstStopPressure = depthToPressure(firstStopDepth);
+
     while (currentStop >= 3) {
-      let stopTime = 0;
-      const tempTissue = [...workingTissue];
-      
-      // Simulate ascent to this stop
       const prevDepth = currentStop === firstStopDepth
         ? phases[phases.length - 1]?.depth || 0
         : currentStop + 3;
-      
+
+      // Transit to this stop
       const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
       const transitPi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < 16; i++) {
-        tempTissue[i] = schreiner(tempTissue[i], transitPi, transitTime, VPM_HALFTIMES[i]);
+        workingTissue[i] = schreiner(workingTissue[i], transitPi, transitTime, COMPARTMENTS[i][0]);
       }
-      
-      // Check if we can ascend to next stop
+
+      // Determine stop time needed
       const nextStop = currentStop - 3;
       const nextAmbient = depthToPressure(nextStop);
-      
-      let canAscend = false;
-      const simTissue = [...tempTissue];
-      
+
+      // VPM-B: Boyle's compensation increases at shallower stops
+      const boyleComp = calcBoyleCompensation(firstStopPressure, nextAmbient, initialGradientBar);
+
+      // GF interpolation: gfLow at first stop, gfHigh at surface
+      const gfAtStop = firstStopDepth > 0
+        ? gfLow + (gfHigh - gfLow) * (1 - currentStop / firstStopDepth)
+        : gfHigh;
+      const gfFactor = gfAtStop / 100.0;
+
+      let stopTime = 0;
+      const simTissue = [...workingTissue];
+
       for (let minute = 0; minute <= 999; minute++) {
-        canAscend = true;
+        let canAscend = true;
         for (let i = 0; i < 16; i++) {
-          const criticalVol = criticalVolume(i, maxDepth);
-          const allowable = vpmAllowableSupersaturation(i, nextAmbient, criticalVol) * conservatismFactor;
-          if (simTissue[i] > allowable) {
+          const maxGradient = Math.max(0, initialGradientBar * gfFactor - boyleComp);
+          const maxTension = nextAmbient + maxGradient;
+          if (simTissue[i] > maxTension) {
             canAscend = false;
             break;
           }
@@ -237,29 +205,27 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, ascent
           stopTime = minute;
           break;
         }
-        
-        // Simulate 1 more minute at this stop
         const pi = inspiredPressure(currentStop, fN2);
         for (let i = 0; i < 16; i++) {
-          simTissue[i] = schreiner(simTissue[i], pi, 1, VPM_HALFTIMES[i]);
+          simTissue[i] = schreiner(simTissue[i], pi, 1, COMPARTMENTS[i][0]);
         }
         stopTime = minute + 1;
       }
-      
+
       if (stopTime > 0) {
         decoStops.push({ depth: currentStop, time: stopTime });
       }
-      
-      // Update working tissue
+
+      // Apply actual stop time to working tissue
       const pi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < 16; i++) {
-        workingTissue[i] = schreiner(workingTissue[i], pi, transitTime + stopTime, VPM_HALFTIMES[i]);
+        workingTissue[i] = schreiner(workingTissue[i], pi, stopTime, COMPARTMENTS[i][0]);
       }
-      
+
       currentStop -= 3;
     }
   }
-  
+
   return {
     decoStops,
     firstStopDepth,

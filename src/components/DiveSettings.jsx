@@ -1,5 +1,33 @@
 import { ALGORITHMS } from '../utils/buhlmann';
 
+// Helper: free typing on change, clamp on blur
+function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
+  return (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(e) => {
+        const raw = e.target.value;
+        if (raw === '' || raw === '-') { onChange(raw); return; }
+        const num = Number(raw);
+        if (!isNaN(num)) onChange(num);
+      }}
+      onBlur={() => {
+        const num = Number(value);
+        if (isNaN(num) || value === '') {
+          onBlur(min ?? 0);
+        } else {
+          onBlur(Math.min(max ?? Infinity, Math.max(min ?? 0, num)));
+        }
+      }}
+      {...props}
+    />
+  );
+}
+
 export default function DiveSettings({
   algorithm, onAlgorithmChange,
   fO2, onFO2Change,
@@ -14,9 +42,9 @@ export default function DiveSettings({
   decoGas2 = null, onDecoGas2Change,
   color = '#4fc3f7',
 }) {
+  const o2Pct = Math.round(fO2 * 100);
+  const hePct = Math.round(fHe * 100);
   const mod = fO2 > 0 ? Math.floor(10 * (ppO2Max / fO2 - 1)) : 0;
-  
-  // Deco gas MODs
   const decoGas1MOD = decoGas1?.fO2 > 0 ? Math.floor(10 * (ppO2Deco / decoGas1.fO2 - 1)) : null;
   const decoGas2MOD = decoGas2?.fO2 > 0 ? Math.floor(10 * (ppO2Deco / decoGas2.fO2 - 1)) : null;
 
@@ -26,11 +54,7 @@ export default function DiveSettings({
       
       <div className="setting-row">
         <label>Algorithm</label>
-        <select
-          value={algorithm}
-          onChange={(e) => onAlgorithmChange(e.target.value)}
-          className="algo-select"
-        >
+        <select value={algorithm} onChange={(e) => onAlgorithmChange(e.target.value)} className="algo-select">
           {Object.entries(ALGORITHMS).map(([key, algo]) => (
             <option key={key} value={key}>{algo.name}</option>
           ))}
@@ -40,8 +64,9 @@ export default function DiveSettings({
       <div className="setting-row">
         <label>Descent Rate</label>
         <div className="rate-input">
-          <input type="number" min="1" max="30" value={descentRate}
-            onChange={(e) => onDescentRateChange(Math.max(1, Number(e.target.value) || 18))} />
+          <NumInput value={descentRate} min={1} max={30}
+            onChange={(v) => onDescentRateChange(v)}
+            onBlur={(v) => onDescentRateChange(v)} />
           <span>m/min</span>
         </div>
       </div>
@@ -49,8 +74,9 @@ export default function DiveSettings({
       <div className="setting-row">
         <label>Ascent Rate</label>
         <div className="rate-input">
-          <input type="number" min="1" max="30" value={ascentRate}
-            onChange={(e) => onAscentRateChange(Math.max(1, Number(e.target.value) || 9))} />
+          <NumInput value={ascentRate} min={1} max={30}
+            onChange={(v) => onAscentRateChange(v)}
+            onBlur={(v) => onAscentRateChange(v)} />
           <span>m/min</span>
         </div>
       </div>
@@ -62,20 +88,15 @@ export default function DiveSettings({
           <div className="setting-row">
             <label>O₂ %</label>
             <div className="rate-input">
-              <input type="number" min="8" max="100"
-                value={Math.round(fO2 * 100)}
-                onChange={(e) => {
-                  const raw = Number(e.target.value);
-                  if (isNaN(raw)) return;
-                  const newO2 = Math.min(100, Math.max(0, raw));
-                  onFO2Change(newO2 / 100);
-                  if (onFHeChange && (newO2 + Math.round(fHe * 100)) > 100) {
-                    onFHeChange((100 - newO2) / 100);
-                  }
+              <NumInput value={o2Pct} min={8} max={100}
+                onChange={(v) => {
+                  const n = typeof v === 'number' ? v : 0;
+                  onFO2Change(n / 100);
+                  if (onFHeChange && (n + hePct) > 100) onFHeChange((100 - n) / 100);
                 }}
-                onBlur={() => {
-                  const val = Math.round(fO2 * 100);
-                  if (val < 8) onFO2Change(0.08);
+                onBlur={(v) => {
+                  onFO2Change(v / 100);
+                  if (onFHeChange && (v + hePct) > 100) onFHeChange((100 - v) / 100);
                 }} />
               <span>%</span>
             </div>
@@ -85,14 +106,9 @@ export default function DiveSettings({
             <div className="setting-row">
               <label>He %</label>
               <div className="rate-input">
-                <input type="number" min="0" max={100 - Math.round(fO2 * 100)}
-                  value={Math.round(fHe * 100)}
-                  onChange={(e) => {
-                    const raw = Number(e.target.value);
-                    if (isNaN(raw)) return;
-                    const maxHe = 100 - Math.round(fO2 * 100);
-                    onFHeChange(Math.min(maxHe, Math.max(0, raw)) / 100);
-                  }} />
+                <NumInput value={hePct} min={0} max={100 - o2Pct}
+                  onChange={(v) => onFHeChange((typeof v === 'number' ? v : 0) / 100)}
+                  onBlur={(v) => onFHeChange(v / 100)} />
                 <span>%</span>
               </div>
             </div>
@@ -100,8 +116,8 @@ export default function DiveSettings({
 
           <div className="gas-mix-label">
             {fHe > 0
-              ? `Trimix ${Math.round(fO2*100)}/${Math.round(fHe*100)} (N₂ ${Math.round((1-fO2-fHe)*100)}%)`
-              : `Nitrox ${Math.round(fO2*100)} (N₂ ${Math.round((1-fO2)*100)}%)`}
+              ? `Trimix ${o2Pct}/${hePct} (N₂ ${100 - o2Pct - hePct}%)`
+              : `Nitrox ${o2Pct} (N₂ ${100 - o2Pct}%)`}
             {' · '}MOD {mod}m
           </div>
 
@@ -110,9 +126,9 @@ export default function DiveSettings({
           <div className="setting-row">
             <label>Bottom ppO₂</label>
             <div className="rate-input">
-              <input type="number" min="1.0" max="2.0" step="0.1"
-                value={ppO2Max}
-                onChange={(e) => onPpO2MaxChange(Math.min(2.0, Math.max(1.0, Number(e.target.value) || 1.6)))} />
+              <NumInput value={ppO2Max} min={1.0} max={2.0} step={0.1}
+                onChange={(v) => onPpO2MaxChange(typeof v === 'number' ? v : 1.6)}
+                onBlur={(v) => onPpO2MaxChange(v)} />
               <span>bar</span>
             </div>
           </div>
@@ -120,9 +136,9 @@ export default function DiveSettings({
           <div className="setting-row">
             <label>Deco ppO₂</label>
             <div className="rate-input">
-              <input type="number" min="1.0" max="1.8" step="0.1"
-                value={ppO2Deco}
-                onChange={(e) => onPpO2DecoChange(Math.min(1.8, Math.max(1.0, Number(e.target.value) || 1.4)))} />
+              <NumInput value={ppO2Deco} min={1.0} max={1.8} step={0.1}
+                onChange={(v) => onPpO2DecoChange(typeof v === 'number' ? v : 1.4)}
+                onBlur={(v) => onPpO2DecoChange(v)} />
               <span>bar</span>
             </div>
           </div>
@@ -130,8 +146,9 @@ export default function DiveSettings({
           <div className="setting-row">
             <label>GF Low</label>
             <div className="rate-input">
-              <input type="number" min="10" max="100" value={gfLow}
-                onChange={(e) => onGfLowChange(Math.min(100, Math.max(10, Number(e.target.value) || 50)))} />
+              <NumInput value={gfLow} min={10} max={100}
+                onChange={(v) => onGfLowChange(v)}
+                onBlur={(v) => onGfLowChange(v)} />
               <span>%</span>
             </div>
           </div>
@@ -139,8 +156,9 @@ export default function DiveSettings({
           <div className="setting-row">
             <label>GF High</label>
             <div className="rate-input">
-              <input type="number" min="10" max="100" value={gfHigh}
-                onChange={(e) => onGfHighChange(Math.min(100, Math.max(10, Number(e.target.value) || 70)))} />
+              <NumInput value={gfHigh} min={10} max={100}
+                onChange={(v) => onGfHighChange(v)}
+                onBlur={(v) => onGfHighChange(v)} />
               <span>%</span>
             </div>
           </div>
@@ -157,9 +175,9 @@ export default function DiveSettings({
             </label>
             {decoGas1 && (
               <div className="rate-input">
-                <input type="number" min="21" max="100"
-                  value={Math.round(decoGas1.fO2 * 100)}
-                  onChange={(e) => onDecoGas1Change({ fO2: Math.min(1, Math.max(0.21, (Number(e.target.value) || 50) / 100)) })} />
+                <NumInput value={Math.round(decoGas1.fO2 * 100)} min={21} max={100}
+                  onChange={(v) => onDecoGas1Change({ fO2: (typeof v === 'number' ? v : 50) / 100 })}
+                  onBlur={(v) => onDecoGas1Change({ fO2: v / 100 })} />
                 <span>% O₂</span>
                 <span className="deco-gas-mod">MOD {decoGas1MOD}m</span>
               </div>
@@ -175,9 +193,9 @@ export default function DiveSettings({
             </label>
             {decoGas2 && (
               <div className="rate-input">
-                <input type="number" min="21" max="100"
-                  value={Math.round(decoGas2.fO2 * 100)}
-                  onChange={(e) => onDecoGas2Change({ fO2: Math.min(1, Math.max(0.21, (Number(e.target.value) || 100) / 100)) })} />
+                <NumInput value={Math.round(decoGas2.fO2 * 100)} min={21} max={100}
+                  onChange={(v) => onDecoGas2Change({ fO2: (typeof v === 'number' ? v : 100) / 100 })}
+                  onBlur={(v) => onDecoGas2Change({ fO2: v / 100 })} />
                 <span>% O₂</span>
                 <span className="deco-gas-mod">MOD {decoGas2MOD}m</span>
               </div>

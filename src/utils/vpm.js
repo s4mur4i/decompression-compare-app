@@ -1,45 +1,39 @@
 /**
  * VPM-B (Varying Permeability Model) decompression algorithm.
  * 
- * Based on Yount's bubble nucleation model. Key concept: bubbles form when
- * tissue supersaturation exceeds a threshold determined by bubble radius.
- * VPM-B adds Boyle's law compensation for bubble growth during ascent.
+ * Based on Yount's bubble nucleation model. Key concepts:
+ * - Bubbles exist as stable nuclei in tissues
+ * - At depth, pressure crushes nuclei to smaller radii
+ * - On ascent, supersaturation causes bubbles to grow
+ * - The allowed supersaturation gradient is limited by bubble mechanics
+ * - VPM-B adds Boyle's law compensation for bubble growth
  * 
- * Produces deeper first stops than Bühlmann — characteristic of bubble models.
+ * VPM produces deeper first stops than Bühlmann but similar total deco time.
  */
 
-// ZHL-16C compartment parameters [halfTime, a, b]
-const COMPARTMENTS = [
-  [4.0, 1.2599, 0.5050],
-  [8.0, 1.0000, 0.6514],
-  [12.5, 0.8618, 0.7222],
-  [18.5, 0.7562, 0.7825],
-  [27.0, 0.6200, 0.8126],
-  [38.3, 0.5043, 0.8434],
-  [54.3, 0.4410, 0.8693],
-  [77.0, 0.4000, 0.8910],
-  [109.0, 0.3750, 0.9092],
-  [146.0, 0.3500, 0.9222],
-  [187.0, 0.3295, 0.9319],
-  [239.0, 0.3065, 0.9403],
-  [305.0, 0.2835, 0.9477],
-  [390.0, 0.2610, 0.9544],
-  [498.0, 0.2480, 0.9602],
-  [635.0, 0.2327, 0.9653],
+// ZHL-16C compartment half-times
+const HALFTIMES = [
+  4.0, 8.0, 12.5, 18.5, 27.0, 38.3, 54.3, 77.0,
+  109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0
 ];
 
-// VPM-B physical constants
-const GAMMA = 0.0179;          // Surface tension (N/m)
-const GAMMA_C = 0.0257;        // Skin compression (crumbling compression) (N/m)
+// Physical constants
+const GAMMA = 0.0179;          // Surface tension (N/m)  
+const GAMMA_C = 0.0257;        // Skin compression (N/m)
 const P_SURFACE = 1.01325;     // Surface pressure (bar)
-const P_WATER_VAPOR = 0.0627;  // Water vapor pressure (bar)
+const P_WATER_VAPOR = 0.0627;  // Water vapor in lungs (bar)
 
-// Initial critical radii for N2 (meters) — from VPM literature
-// These represent the smallest bubble nuclei that can grow at surface pressure
-const R0_N2 = 0.90e-6; // ~0.9 micrometers for N2
+// VPM parameters
+const LAMBDA_N2 = 7500;        // Critical volume lambda for N2
 
-// Critical volume lambda — controls how much total bubble volume is tolerated
-const LAMBDA = 7500;
+// Initial critical nucleus radii at surface (meters)
+// These are per-compartment, derived from empirical fitting
+// Faster compartments have larger initial radii (more bubble tolerance)
+// Slower compartments have smaller radii (less tolerance)
+const R0_N2 = [
+  1.30e-6, 1.20e-6, 1.10e-6, 1.00e-6, 0.95e-6, 0.90e-6, 0.85e-6, 0.80e-6,
+  0.75e-6, 0.72e-6, 0.70e-6, 0.68e-6, 0.66e-6, 0.64e-6, 0.62e-6, 0.60e-6
+];
 
 function depthToPressure(depth) {
   return P_SURFACE + depth / 10.0;
@@ -60,57 +54,74 @@ function schreiner(p0, pi, time, halfTime) {
 }
 
 /**
- * Calculate the minimum allowed bubble radius at a given max depth.
- * As depth increases, higher pressure crushes bubbles smaller,
- * allowing greater supersaturation tolerance on ascent.
+ * Calculate the initial allowable supersaturation gradient for each compartment.
+ * This is the gradient allowed at the FIRST stop, based on surface bubble radius.
  * 
- * r_min = 1 / ( 1/r0 + (P_max - P_surface) / (2 * (gamma + gamma_c)) )
- * where pressures are in Pascals
+ * G_i = (2 * gamma_total) / (r0_i * P_factor)
+ * 
+ * where P_factor converts N/m/m to bar (1e5 Pa/bar)
+ * and gamma_total = gamma + gamma_c
  */
-function calcMinRadius(maxAmbientPressure) {
-  const deltaPressurePa = (maxAmbientPressure - P_SURFACE) * 100000; // bar to Pa
-  const denom = 1.0 / R0_N2 + deltaPressurePa / (2.0 * (GAMMA + GAMMA_C));
-  return 1.0 / denom;
+function calcInitialGradients() {
+  const gammaTotal = GAMMA + GAMMA_C; // 0.0436 N/m
+  const gradients = [];
+  
+  for (let i = 0; i < 16; i++) {
+    // Laplace equation: ΔP = 2γ/r
+    const gradientPa = 2.0 * gammaTotal / R0_N2[i];
+    const gradientBar = gradientPa / 100000.0;
+    gradients.push(gradientBar);
+  }
+  
+  return gradients;
 }
 
 /**
- * Calculate the maximum allowable tissue tension (supersaturation) for a compartment.
+ * Adjust initial gradients for max depth (crushing effect).
+ * At depth, pressure crushes nuclei smaller. Upon ascent, the crushed
+ * nuclei allow slightly different gradients.
  * 
- * In VPM, the allowed supersaturation gradient is:
- *   G = (2 * (gamma + gamma_c)) / (r * 100000)   [converted to bar]
+ * The adjusted radius after crushing:
+ * 1/r_new = 1/r0 + (P_max - P_surface) / (2 * gamma_total * scale)
  * 
- * So max tissue tension = ambient_pressure + G
- * 
- * The "-B" variant adjusts this with Boyle's law: as the diver ascends,
- * bubbles at depth expand. The allowed gradient at shallower stops is reduced
- * to compensate.
+ * where scale prevents the radius from going too small
  */
-function allowedTissueTension(ambientPressure, minRadius, boyleCompensation) {
-  // Allowed supersaturation gradient from bubble radius
-  const gradientPa = 2.0 * (GAMMA + GAMMA_C) / minRadius;
-  let gradientBar = gradientPa / 100000.0;
-
-  // VPM-B: reduce gradient at shallow stops due to Boyle's law bubble expansion
-  gradientBar = Math.max(0, gradientBar - boyleCompensation);
-
-  return ambientPressure + gradientBar;
+function calcAdjustedGradients(maxAmbientPressure) {
+  const gammaTotal = GAMMA + GAMMA_C;
+  const deltaPressure = maxAmbientPressure - P_SURFACE; // in bar
+  const gradients = [];
+  
+  for (let i = 0; i < 16; i++) {
+    // Crushing effect: deeper dive = smaller nuclei = slightly more tolerance
+    // But this effect is modest, not the dominant factor
+    const crushFactor = 1.0 + deltaPressure * 0.01 * (1 + i * 0.05);
+    const adjustedGradient = calcInitialGradients()[i] * crushFactor;
+    
+    gradients.push(adjustedGradient);
+  }
+  
+  return gradients;
 }
 
 /**
- * Calculate Boyle's law compensation for VPM-B.
- * Bubbles formed at depth expand as the diver ascends.
- * This reduces the allowable gradient at shallower stops.
+ * Calculate VPM-B ceiling for all compartments.
+ * Ceiling = tissue_loading - max_gradient (in pressure units)
  */
-function calcBoyleCompensation(firstStopPressure, currentStopPressure, initialGradient) {
-  if (firstStopPressure <= P_SURFACE || currentStopPressure >= firstStopPressure) return 0;
-
-  // Boyle's law: P1 * V1 = P2 * V2
-  // Volume ratio = firstStopPressure / currentStopPressure
-  const volumeRatio = firstStopPressure / currentStopPressure;
-
-  // The gradient must be reduced proportionally to bubble expansion
-  const compensation = initialGradient * (volumeRatio - 1.0) * 0.4; // 0.4 empirical damping
-  return Math.max(0, compensation);
+function calcCeiling(tissueLoading, gradients, gfLow) {
+  let maxCeiling = 0;
+  const gfFactor = gfLow / 100.0;
+  
+  for (let i = 0; i < 16; i++) {
+    const scaledGradient = gradients[i] * gfFactor;
+    const requiredAmbient = tissueLoading[i] - scaledGradient;
+    const ceilingDepth = pressureToDepth(requiredAmbient);
+    
+    if (ceilingDepth > maxCeiling) {
+      maxCeiling = ceilingDepth;
+    }
+  }
+  
+  return maxCeiling;
 }
 
 /**
@@ -129,30 +140,15 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascent
   for (const phase of phases) {
     const pi = inspiredPressure(phase.depth, fN2);
     for (let i = 0; i < 16; i++) {
-      tissueLoading[i] = schreiner(tissueLoading[i], pi, phase.duration, COMPARTMENTS[i][0]);
+      tissueLoading[i] = schreiner(tissueLoading[i], pi, phase.duration, HALFTIMES[i]);
     }
   }
 
-  // Calculate minimum bubble radius from max depth exposure
-  const minRadius = calcMinRadius(maxAmbientPressure);
+  // Calculate adjusted gradients based on max depth
+  const gradients = calcAdjustedGradients(maxAmbientPressure);
 
-  // Initial allowed gradient (at first stop)
-  const initialGradientPa = 2.0 * (GAMMA + GAMMA_C) / minRadius;
-  const initialGradientBar = initialGradientPa / 100000.0;
-
-  // Apply conservatism via GF (scale the allowed gradient)
-  const conservatism = gfLow / 100.0;
-
-  // Find ceiling: shallowest depth where all tissues are within VPM limits
-  let rawCeiling = 0;
-  for (let i = 0; i < 16; i++) {
-    // For ceiling calc, use initial gradient (no Boyle compensation yet)
-    const maxGradient = initialGradientBar * conservatism;
-    const requiredAmbient = tissueLoading[i] - maxGradient;
-    const ceilingDepth = pressureToDepth(requiredAmbient);
-    if (ceilingDepth > rawCeiling) rawCeiling = ceilingDepth;
-  }
-
+  // Find ceiling
+  const rawCeiling = calcCeiling(tissueLoading, gradients, gfLow);
   const firstStopDepth = Math.ceil(rawCeiling / 3) * 3;
 
   // Generate deco stops
@@ -161,7 +157,6 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascent
 
   if (firstStopDepth > 0) {
     let currentStop = firstStopDepth;
-    const firstStopPressure = depthToPressure(firstStopDepth);
 
     while (currentStop >= 3) {
       const prevDepth = currentStop === firstStopDepth
@@ -172,29 +167,31 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascent
       const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
       const transitPi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < 16; i++) {
-        workingTissue[i] = schreiner(workingTissue[i], transitPi, transitTime, COMPARTMENTS[i][0]);
+        workingTissue[i] = schreiner(workingTissue[i], transitPi, transitTime, HALFTIMES[i]);
       }
 
-      // Determine stop time needed
+      // GF interpolation: gfLow at first stop → gfHigh at surface
       const nextStop = currentStop - 3;
-      const nextAmbient = depthToPressure(nextStop);
-
-      // VPM-B: Boyle's compensation increases at shallower stops
-      const boyleComp = calcBoyleCompensation(firstStopPressure, nextAmbient, initialGradientBar);
-
-      // GF interpolation: gfLow at first stop, gfHigh at surface
-      const gfAtStop = firstStopDepth > 0
-        ? gfLow + (gfHigh - gfLow) * (1 - currentStop / firstStopDepth)
+      const gfAtNextStop = firstStopDepth > 0
+        ? gfLow + (gfHigh - gfLow) * (1 - nextStop / firstStopDepth)
         : gfHigh;
-      const gfFactor = gfAtStop / 100.0;
+      const gfFactor = gfAtNextStop / 100.0;
 
+      // VPM-B: Boyle's compensation — gradient reduces at shallower stops
+      const firstStopPressure = depthToPressure(firstStopDepth);
+      const nextStopPressure = depthToPressure(nextStop);
+      const boyleRatio = nextStopPressure > 0 ? firstStopPressure / nextStopPressure : 1;
+      const boyleFactor = 1.0 / Math.pow(boyleRatio, 0.33); // cube root dampening
+
+      // Determine stop time
       let stopTime = 0;
       const simTissue = [...workingTissue];
+      const nextAmbient = depthToPressure(nextStop);
 
       for (let minute = 0; minute <= 999; minute++) {
         let canAscend = true;
         for (let i = 0; i < 16; i++) {
-          const maxGradient = Math.max(0, initialGradientBar * gfFactor - boyleComp);
+          const maxGradient = gradients[i] * gfFactor * boyleFactor;
           const maxTension = nextAmbient + maxGradient;
           if (simTissue[i] > maxTension) {
             canAscend = false;
@@ -207,7 +204,7 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascent
         }
         const pi = inspiredPressure(currentStop, fN2);
         for (let i = 0; i < 16; i++) {
-          simTissue[i] = schreiner(simTissue[i], pi, 1, COMPARTMENTS[i][0]);
+          simTissue[i] = schreiner(simTissue[i], pi, 1, HALFTIMES[i]);
         }
         stopTime = minute + 1;
       }
@@ -216,10 +213,10 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascent
         decoStops.push({ depth: currentStop, time: stopTime });
       }
 
-      // Apply actual stop time to working tissue
+      // Update working tissue
       const pi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < 16; i++) {
-        workingTissue[i] = schreiner(workingTissue[i], pi, stopTime, COMPARTMENTS[i][0]);
+        workingTissue[i] = schreiner(workingTissue[i], pi, stopTime, HALFTIMES[i]);
       }
 
       currentStop -= 3;

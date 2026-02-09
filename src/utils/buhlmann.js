@@ -272,20 +272,21 @@ export function calculateZHL12(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { ret
 export function calculateZHL6(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl6', fHe, gas); }
 export function calculateZHL8ADT(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl8adt', fHe, gas); }
 
+// Capability flags: trimix (He tracking), multiGas (deco gas switches), gf (gradient factors)
 export const ALGORITHMS = {
-  none: { name: 'No Algorithm', description: 'Direct ascent, no deco calculation' },
-  zhl16a: { name: 'ZH-L 16A', description: 'Original experimental (1986). Theoretical a-values.' },
-  zhl16b: { name: 'ZH-L 16B', description: 'For printed tables. Reduced conservatism in compartments 6-8.' },
-  zhl16c: { name: 'ZH-L 16C', description: 'For dive computers. Most widely used. Trimix + multi-gas support.' },
-  zhl12: { name: 'ZH-L 12', description: 'Original 1983 version. 12 unique parameter pairs.' },
-  zhl6: { name: 'ZH-L 6', description: 'Simplified 6-compartment model.' },
-  zhl8adt: { name: 'ZH-L 8 ADT', description: '8-compartment adaptive model.' },
-  vpm: { name: 'VPM-B', description: 'Varying Permeability Model with bubble mechanics. Deeper first stops.' },
-  rgbm: { name: 'RGBM', description: 'Reduced Gradient Bubble Model. Dual-phase with bubble tracking.' },
-  haldane: { name: 'Haldane (1908)', description: '5 compartments, 2:1 ratio. Foundation of modern deco theory.' },
-  workman: { name: 'Workman (1965)', description: 'US Navy M-values. 9 compartments. Predecessor to Bühlmann.' },
-  thalmann: { name: 'Thalmann VVAL-18', description: 'US Navy. Asymmetric gas kinetics (different on/off-gassing).' },
-  dciem: { name: 'DCIEM', description: 'Canadian serial compartments. Very conservative.' },
+  none:    { name: 'No Algorithm',       description: 'Direct ascent, no deco calculation',                          trimix: false, multiGas: false, gf: false },
+  zhl16a:  { name: 'ZH-L 16A',          description: 'Original experimental (1986). Trimix + multi-gas.',           trimix: true,  multiGas: true,  gf: true },
+  zhl16b:  { name: 'ZH-L 16B',          description: 'For printed tables. Trimix + multi-gas.',                     trimix: true,  multiGas: true,  gf: true },
+  zhl16c:  { name: 'ZH-L 16C',          description: 'For dive computers. Most widely used. Trimix + multi-gas.',   trimix: true,  multiGas: true,  gf: true },
+  zhl12:   { name: 'ZH-L 12',           description: 'Original 1983 version. Trimix + multi-gas.',                  trimix: true,  multiGas: true,  gf: true },
+  zhl6:    { name: 'ZH-L 6',            description: 'Simplified 6-compartment. Trimix + multi-gas.',               trimix: true,  multiGas: true,  gf: true },
+  zhl8adt: { name: 'ZH-L 8 ADT',        description: '8-compartment adaptive. Trimix + multi-gas.',                 trimix: true,  multiGas: true,  gf: true },
+  vpm:     { name: 'VPM-B',             description: 'Bubble mechanics model. Deeper first stops. Nitrox only.',    trimix: false, multiGas: false, gf: true },
+  rgbm:    { name: 'RGBM',              description: 'Dual-phase bubble model. Nitrox only.',                       trimix: false, multiGas: false, gf: true },
+  haldane: { name: 'Haldane (1908)',     description: '5 compartments, 2:1 ratio. Air/Nitrox only.',                 trimix: false, multiGas: false, gf: false },
+  workman: { name: 'Workman (1965)',     description: 'US Navy M-values. 9 compartments. Air/Nitrox only.',          trimix: false, multiGas: false, gf: false },
+  thalmann:{ name: 'Thalmann VVAL-18',  description: 'US Navy asymmetric kinetics. Air/Nitrox only.',               trimix: false, multiGas: false, gf: false },
+  dciem:   { name: 'DCIEM',             description: 'Canadian serial compartments. Very conservative. Air/Nitrox.', trimix: false, multiGas: false, gf: false },
 };
 
 export { calculateZHL16C as default };

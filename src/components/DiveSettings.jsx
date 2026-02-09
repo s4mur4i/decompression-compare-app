@@ -1,14 +1,9 @@
 import { ALGORITHMS } from '../utils/buhlmann';
 
-// Helper: free typing on change, clamp on blur
 function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
   return (
     <input
-      type="number"
-      min={min}
-      max={max}
-      step={step}
-      value={value}
+      type="number" min={min} max={max} step={step} value={value}
       onChange={(e) => {
         const raw = e.target.value;
         if (raw === '' || raw === '-') { onChange(raw); return; }
@@ -42,6 +37,11 @@ export default function DiveSettings({
   decoGas2 = null, onDecoGas2Change,
   color = '#4fc3f7',
 }) {
+  const algo = ALGORITHMS[algorithm] || {};
+  const supportsTrimix = algo.trimix;
+  const supportsMultiGas = algo.multiGas;
+  const supportsGF = algo.gf;
+
   const o2Pct = Math.round(fO2 * 100);
   const hePct = Math.round(fHe * 100);
   const mod = fO2 > 0 ? Math.floor(10 * (ppO2Max / fO2 - 1)) : 0;
@@ -55,8 +55,8 @@ export default function DiveSettings({
       <div className="setting-row">
         <label>Algorithm</label>
         <select value={algorithm} onChange={(e) => onAlgorithmChange(e.target.value)} className="algo-select">
-          {Object.entries(ALGORITHMS).map(([key, algo]) => (
-            <option key={key} value={key}>{algo.name}</option>
+          {Object.entries(ALGORITHMS).map(([key, a]) => (
+            <option key={key} value={key}>{a.name}</option>
           ))}
         </select>
       </div>
@@ -102,7 +102,7 @@ export default function DiveSettings({
             </div>
           </div>
 
-          {onFHeChange && (
+          {supportsTrimix && onFHeChange && (
             <div className="setting-row">
               <label>He %</label>
               <div className="rate-input">
@@ -115,7 +115,7 @@ export default function DiveSettings({
           )}
 
           <div className="gas-mix-label">
-            {fHe > 0
+            {supportsTrimix && fHe > 0
               ? `Trimix ${o2Pct}/${hePct} (N₂ ${100 - o2Pct - hePct}%)`
               : `Nitrox ${o2Pct} (N₂ ${100 - o2Pct}%)`}
             {' · '}MOD {mod}m
@@ -133,77 +133,87 @@ export default function DiveSettings({
             </div>
           </div>
 
-          <div className="setting-row">
-            <label>Deco ppO₂</label>
-            <div className="rate-input">
-              <NumInput value={ppO2Deco} min={1.0} max={1.8} step={0.1}
-                onChange={(v) => onPpO2DecoChange(typeof v === 'number' ? v : 1.4)}
-                onBlur={(v) => onPpO2DecoChange(v)} />
-              <span>bar</span>
-            </div>
-          </div>
-
-          <div className="setting-row">
-            <label>GF Low</label>
-            <div className="rate-input">
-              <NumInput value={gfLow} min={10} max={100}
-                onChange={(v) => onGfLowChange(v)}
-                onBlur={(v) => onGfLowChange(v)} />
-              <span>%</span>
-            </div>
-          </div>
-
-          <div className="setting-row">
-            <label>GF High</label>
-            <div className="rate-input">
-              <NumInput value={gfHigh} min={10} max={100}
-                onChange={(v) => onGfHighChange(v)}
-                onBlur={(v) => onGfHighChange(v)} />
-              <span>%</span>
-            </div>
-          </div>
-
-          <div className="settings-divider" />
-          <h4 className="settings-subtitle">Deco Gases</h4>
-
-          <div className="deco-gas-row">
-            <label className="deco-gas-toggle">
-              <input type="checkbox"
-                checked={decoGas1 !== null}
-                onChange={(e) => onDecoGas1Change(e.target.checked ? { fO2: 0.50 } : null)} />
-              Stage 1
-            </label>
-            {decoGas1 && (
+          {supportsMultiGas && (
+            <div className="setting-row">
+              <label>Deco ppO₂</label>
               <div className="rate-input">
-                <NumInput value={Math.round(decoGas1.fO2 * 100)} min={21} max={100}
-                  onChange={(v) => onDecoGas1Change({ fO2: (typeof v === 'number' ? v : 50) / 100 })}
-                  onBlur={(v) => onDecoGas1Change({ fO2: v / 100 })} />
-                <span>% O₂</span>
-                <span className="deco-gas-mod">MOD {decoGas1MOD}m</span>
+                <NumInput value={ppO2Deco} min={1.0} max={1.8} step={0.1}
+                  onChange={(v) => onPpO2DecoChange(typeof v === 'number' ? v : 1.4)}
+                  onBlur={(v) => onPpO2DecoChange(v)} />
+                <span>bar</span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          <div className="deco-gas-row">
-            <label className="deco-gas-toggle">
-              <input type="checkbox"
-                checked={decoGas2 !== null}
-                onChange={(e) => onDecoGas2Change(e.target.checked ? { fO2: 1.0 } : null)} />
-              Stage 2
-            </label>
-            {decoGas2 && (
-              <div className="rate-input">
-                <NumInput value={Math.round(decoGas2.fO2 * 100)} min={21} max={100}
-                  onChange={(v) => onDecoGas2Change({ fO2: (typeof v === 'number' ? v : 100) / 100 })}
-                  onBlur={(v) => onDecoGas2Change({ fO2: v / 100 })} />
-                <span>% O₂</span>
-                <span className="deco-gas-mod">MOD {decoGas2MOD}m</span>
+          {supportsGF && (
+            <>
+              <div className="setting-row">
+                <label>GF Low</label>
+                <div className="rate-input">
+                  <NumInput value={gfLow} min={10} max={100}
+                    onChange={(v) => onGfLowChange(v)}
+                    onBlur={(v) => onGfLowChange(v)} />
+                  <span>%</span>
+                </div>
               </div>
-            )}
-          </div>
+
+              <div className="setting-row">
+                <label>GF High</label>
+                <div className="rate-input">
+                  <NumInput value={gfHigh} min={10} max={100}
+                    onChange={(v) => onGfHighChange(v)}
+                    onBlur={(v) => onGfHighChange(v)} />
+                  <span>%</span>
+                </div>
+              </div>
+            </>
+          )}
+
+          {supportsMultiGas && (
+            <>
+              <div className="settings-divider" />
+              <h4 className="settings-subtitle">Deco Gases</h4>
+
+              <div className="deco-gas-row">
+                <label className="deco-gas-toggle">
+                  <input type="checkbox"
+                    checked={decoGas1 !== null}
+                    onChange={(e) => onDecoGas1Change(e.target.checked ? { fO2: 0.50 } : null)} />
+                  Stage 1
+                </label>
+                {decoGas1 && (
+                  <div className="rate-input">
+                    <NumInput value={Math.round(decoGas1.fO2 * 100)} min={21} max={100}
+                      onChange={(v) => onDecoGas1Change({ fO2: (typeof v === 'number' ? v : 50) / 100 })}
+                      onBlur={(v) => onDecoGas1Change({ fO2: v / 100 })} />
+                    <span>% O₂</span>
+                    <span className="deco-gas-mod">MOD {decoGas1MOD}m</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="deco-gas-row">
+                <label className="deco-gas-toggle">
+                  <input type="checkbox"
+                    checked={decoGas2 !== null}
+                    onChange={(e) => onDecoGas2Change(e.target.checked ? { fO2: 1.0 } : null)} />
+                  Stage 2
+                </label>
+                {decoGas2 && (
+                  <div className="rate-input">
+                    <NumInput value={Math.round(decoGas2.fO2 * 100)} min={21} max={100}
+                      onChange={(v) => onDecoGas2Change({ fO2: (typeof v === 'number' ? v : 100) / 100 })}
+                      onBlur={(v) => onDecoGas2Change({ fO2: v / 100 })} />
+                    <span>% O₂</span>
+                    <span className="deco-gas-mod">MOD {decoGas2MOD}m</span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
 
           <div className="algo-description">
-            {ALGORITHMS[algorithm]?.description}
+            {algo.description}
           </div>
         </>
       )}

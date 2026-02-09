@@ -1,4 +1,4 @@
-export default function DiveTable({ phases }) {
+export default function DiveTable({ phases, color = '#4fc3f7' }) {
   if (!phases || phases.length === 0) return null;
 
   // Build display rows with cumulative runtime and depth ranges
@@ -27,8 +27,8 @@ export default function DiveTable({ phases }) {
   }
 
   return (
-    <div className="dive-table">
-      <h3>Dive Plan</h3>
+    <div className="dive-table" style={{ borderColor: `${color}40` }}>
+      <h3 style={{ color }}>Dive Plan</h3>
       <table>
         <thead>
           <tr>

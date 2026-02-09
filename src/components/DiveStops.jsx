@@ -1,20 +1,60 @@
 import { useState } from 'react';
 
 export default function DiveStops({ stops, onStopsChange }) {
+  // Track raw input values for free editing
+  const [editing, setEditing] = useState({});
+
   const addStop = () => {
     onStopsChange([...stops, { depth: 10, time: 5 }]);
   };
 
   const removeStop = (index) => {
     onStopsChange(stops.filter((_, i) => i !== index));
+    // Clean up editing state
+    const newEditing = {};
+    Object.entries(editing).forEach(([key]) => {
+      const [, idx] = key.split('-');
+      if (Number(idx) !== index) newEditing[key] = editing[key];
+    });
+    setEditing(newEditing);
   };
 
-  const updateStop = (index, field, value) => {
-    const updated = stops.map((s, i) => {
-      if (i !== index) return s;
-      return { ...s, [field]: Math.max(0, Number(value) || 0) };
+  const handleChange = (index, field, rawValue) => {
+    const key = `${field}-${index}`;
+    setEditing(prev => ({ ...prev, [key]: rawValue }));
+
+    const num = Number(rawValue);
+    if (rawValue !== '' && !isNaN(num) && num >= 0) {
+      const updated = stops.map((s, i) => {
+        if (i !== index) return s;
+        return { ...s, [field]: num };
+      });
+      onStopsChange(updated);
+    }
+  };
+
+  const handleBlur = (index, field) => {
+    const key = `${field}-${index}`;
+    setEditing(prev => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
     });
-    onStopsChange(updated);
+  };
+
+  const getDisplayValue = (index, field, actualValue) => {
+    const key = `${field}-${index}`;
+    if (key in editing) return editing[key];
+    return actualValue;
+  };
+
+  const isInvalid = (index, field) => {
+    const key = `${field}-${index}`;
+    if (!(key in editing)) return false;
+    const raw = editing[key];
+    if (raw === '') return true;
+    const num = Number(raw);
+    return isNaN(num) || num < 0 || (field === 'time' && num <= 0);
   };
 
   const moveStop = (index, direction) => {
@@ -38,8 +78,10 @@ export default function DiveStops({ stops, onStopsChange }) {
                 type="number"
                 min="0"
                 max="300"
-                value={stop.depth}
-                onChange={(e) => updateStop(i, 'depth', e.target.value)}
+                className={isInvalid(i, 'depth') ? 'invalid' : ''}
+                value={getDisplayValue(i, 'depth', stop.depth)}
+                onChange={(e) => handleChange(i, 'depth', e.target.value)}
+                onBlur={() => handleBlur(i, 'depth')}
               />
             </div>
             <div className="stop-field">
@@ -48,8 +90,10 @@ export default function DiveStops({ stops, onStopsChange }) {
                 type="number"
                 min="1"
                 max="999"
-                value={stop.time}
-                onChange={(e) => updateStop(i, 'time', e.target.value)}
+                className={isInvalid(i, 'time') ? 'invalid' : ''}
+                value={getDisplayValue(i, 'time', stop.time)}
+                onChange={(e) => handleChange(i, 'time', e.target.value)}
+                onBlur={() => handleBlur(i, 'time')}
               />
             </div>
             <div className="stop-actions">

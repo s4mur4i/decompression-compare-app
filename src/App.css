@@ -163,6 +163,11 @@ input:focus {
   border-color: #4fc3f7;
 }
 
+input.invalid {
+  border-color: #f44336 !important;
+  background: rgba(244, 67, 54, 0.1) !important;
+}
+
 .stop-actions {
   display: flex;
   gap: 2px;

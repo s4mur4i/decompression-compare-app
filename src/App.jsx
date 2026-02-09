@@ -182,12 +182,42 @@ function App() {
       </header>
 
       <main className="app-main">
-        {/* Shared: Dive Stops only */}
+        {/* 1. Dive Stops */}
         <div className="shared-controls">
           <DiveStops stops={stops} onStopsChange={setStops} />
         </div>
 
-        {/* Chart — above summaries/tables */}
+        {/* 2. Algorithm Settings */}
+        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+          <div className="algorithm-panel panel-a">
+            {compareMode && <div className="panel-header"><span className="panel-label">Algorithm A</span></div>}
+            <DiveSettings
+              algorithm={algorithmA} onAlgorithmChange={setAlgorithmA}
+              fO2={fO2A} onFO2Change={setFO2A}
+              gfLow={gfLowA} onGfLowChange={setGfLowA}
+              gfHigh={gfHighA} onGfHighChange={setGfHighA}
+              descentRate={descentRateA} onDescentRateChange={setDescentRateA}
+              ascentRate={ascentRateA} onAscentRateChange={setAscentRateA}
+              color="#4fc3f7"
+            />
+          </div>
+          {compareMode && (
+            <div className="algorithm-panel panel-b">
+              <div className="panel-header"><span className="panel-label">Algorithm B</span></div>
+              <DiveSettings
+                algorithm={algorithmB} onAlgorithmChange={setAlgorithmB}
+                fO2={fO2B} onFO2Change={setFO2B}
+                gfLow={gfLowB} onGfLowChange={setGfLowB}
+                gfHigh={gfHighB} onGfHighChange={setGfHighB}
+                descentRate={descentRateB} onDescentRateChange={setDescentRateB}
+                ascentRate={ascentRateB} onAscentRateChange={setAscentRateB}
+                color="#ff9800"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* 3. Graph */}
         <div className="chart-panel">
           <DiveChart 
             profiles={compareMode ? [
@@ -199,68 +229,39 @@ function App() {
           />
         </div>
 
-        {/* Algorithm Panels — settings, summary, table */}
+        {/* 4. Summary */}
         <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-          {/* Algorithm A */}
           <div className="algorithm-panel panel-a">
-            {compareMode && <div className="panel-header"><span className="panel-label">Algorithm A</span></div>}
-            <DiveSettings
-              algorithm={algorithmA}
-              onAlgorithmChange={setAlgorithmA}
-              fO2={fO2A}
-              onFO2Change={setFO2A}
-              gfLow={gfLowA}
-              onGfLowChange={setGfLowA}
-              gfHigh={gfHighA}
-              onGfHighChange={setGfHighA}
-              descentRate={descentRateA}
-              onDescentRateChange={setDescentRateA}
-              ascentRate={ascentRateA}
-              onAscentRateChange={setAscentRateA}
-              color="#4fc3f7"
-            />
             <DiveSummary
-              stops={stops}
-              totalTime={resultA?.totalTime || 0}
-              decoInfo={resultA?.decoInfo}
-              color="#4fc3f7"
+              stops={stops} totalTime={resultA?.totalTime || 0}
+              decoInfo={resultA?.decoInfo} color="#4fc3f7"
               compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
             />
-            <DiveTable phases={resultA?.phases || []} color="#4fc3f7" />
           </div>
-
-          {/* Algorithm B (compare mode only) */}
           {compareMode && (
             <div className="algorithm-panel panel-b">
-              <div className="panel-header"><span className="panel-label">Algorithm B</span></div>
-              <DiveSettings
-                algorithm={algorithmB}
-                onAlgorithmChange={setAlgorithmB}
-                fO2={fO2B}
-                onFO2Change={setFO2B}
-                gfLow={gfLowB}
-                onGfLowChange={setGfLowB}
-                gfHigh={gfHighB}
-                onGfHighChange={setGfHighB}
-                descentRate={descentRateB}
-                onDescentRateChange={setDescentRateB}
-                ascentRate={ascentRateB}
-                onAscentRateChange={setAscentRateB}
-                color="#ff9800"
-              />
               <DiveSummary
-                stops={stops}
-                totalTime={resultB?.totalTime || 0}
-                decoInfo={resultB?.decoInfo}
-                color="#ff9800"
+                stops={stops} totalTime={resultB?.totalTime || 0}
+                decoInfo={resultB?.decoInfo} color="#ff9800"
                 compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
               />
+            </div>
+          )}
+        </div>
+
+        {/* 5. Dive Plan */}
+        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+          <div className="algorithm-panel panel-a">
+            <DiveTable phases={resultA?.phases || []} color="#4fc3f7" />
+          </div>
+          {compareMode && (
+            <div className="algorithm-panel panel-b">
               <DiveTable phases={resultB?.phases || []} color="#ff9800" />
             </div>
           )}
         </div>
 
-        {/* Share Link — very bottom */}
+        {/* 6. Share Link */}
         <ShareLink />
       </main>
 

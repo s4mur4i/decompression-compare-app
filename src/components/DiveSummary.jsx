@@ -1,9 +1,8 @@
-import { getTotalTime, getMaxDepth } from '../utils/diveProfile';
+import { getMaxDepth } from '../utils/diveProfile';
 
-export default function DiveSummary({ stops, profile, descentRate }) {
-  if (!profile || profile.length < 2) return null;
+export default function DiveSummary({ stops, totalTime, decoInfo }) {
+  if (!stops || stops.length === 0) return null;
 
-  const totalTime = getTotalTime(profile);
   const maxDepth = getMaxDepth(stops);
   const bottomTime = stops.reduce((acc, s) => acc + s.time, 0);
 
@@ -20,9 +19,21 @@ export default function DiveSummary({ stops, profile, descentRate }) {
           <span className="summary-value">{bottomTime} min</span>
         </div>
         <div className="summary-item">
-          <span className="summary-label">Total Dive Time</span>
+          <span className="summary-label">Run Time</span>
           <span className="summary-value">{totalTime} min</span>
         </div>
+        {decoInfo && !decoInfo.noDecoLimit && (
+          <div className="summary-item deco-warning">
+            <span className="summary-label">Deco Stops</span>
+            <span className="summary-value">{decoInfo.decoStops.length}</span>
+          </div>
+        )}
+        {decoInfo && decoInfo.noDecoLimit && (
+          <div className="summary-item no-deco">
+            <span className="summary-label">Status</span>
+            <span className="summary-value">No Deco</span>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -289,6 +289,94 @@ input:focus {
   font-size: 1.1rem;
 }
 
+/* Algorithm select */
+.algo-select {
+  padding: 6px 8px;
+  background: #0d1b2a;
+  border: 1px solid rgba(79, 195, 247, 0.3);
+  border-radius: 6px;
+  color: #e0e8f0;
+  font-size: 0.85rem;
+}
+
+.algo-description {
+  margin-top: 8px;
+  padding: 8px;
+  background: #0d1b2a;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  color: #78909c;
+  line-height: 1.4;
+}
+
+/* Summary deco states */
+.summary-item.deco-warning .summary-value {
+  color: #ff9800;
+}
+
+.summary-item.no-deco .summary-value {
+  color: #66bb6a;
+}
+
+/* Dive Table */
+.dive-table {
+  margin-top: 20px;
+}
+
+.dive-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.dive-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: #0d1b2a;
+  color: #4fc3f7;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid rgba(79, 195, 247, 0.2);
+}
+
+.dive-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.dive-table tr:hover {
+  background: rgba(79, 195, 247, 0.05);
+}
+
+.action-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.action-badge.descend {
+  background: rgba(33, 150, 243, 0.2);
+  color: #64b5f6;
+}
+
+.action-badge.stay {
+  background: rgba(76, 175, 80, 0.2);
+  color: #81c784;
+}
+
+.action-badge.ascend {
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffd54f;
+}
+
+.action-badge.deco-stop {
+  background: rgba(255, 87, 34, 0.2);
+  color: #ff8a65;
+}
+
 /* Number input arrows */
 input[type="number"]::-webkit-inner-spin-button {
   opacity: 0.5;

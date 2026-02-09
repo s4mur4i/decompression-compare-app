@@ -65,12 +65,17 @@ export default function DiveSettings({
               <input type="number" min="8" max="100"
                 value={Math.round(fO2 * 100)}
                 onChange={(e) => {
-                  const newO2 = Math.min(100, Math.max(8, Number(e.target.value) || 21));
+                  const raw = Number(e.target.value);
+                  if (isNaN(raw)) return;
+                  const newO2 = Math.min(100, Math.max(0, raw));
                   onFO2Change(newO2 / 100);
-                  // Clamp He so O2+He <= 100
                   if (onFHeChange && (newO2 + Math.round(fHe * 100)) > 100) {
                     onFHeChange((100 - newO2) / 100);
                   }
+                }}
+                onBlur={() => {
+                  const val = Math.round(fO2 * 100);
+                  if (val < 8) onFO2Change(0.08);
                 }} />
               <span>%</span>
             </div>
@@ -83,8 +88,10 @@ export default function DiveSettings({
                 <input type="number" min="0" max={100 - Math.round(fO2 * 100)}
                   value={Math.round(fHe * 100)}
                   onChange={(e) => {
+                    const raw = Number(e.target.value);
+                    if (isNaN(raw)) return;
                     const maxHe = 100 - Math.round(fO2 * 100);
-                    onFHeChange(Math.min(maxHe, Math.max(0, Number(e.target.value) || 0)) / 100);
+                    onFHeChange(Math.min(maxHe, Math.max(0, raw)) / 100);
                   }} />
                 <span>%</span>
               </div>

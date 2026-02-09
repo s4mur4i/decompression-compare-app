@@ -218,7 +218,7 @@ export function calculateDCIEM(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, asce
       const simTissue = [...tempTissue];
       
       // Stay at stop until DCIEM criteria allow ascent
-      for (let minute = 0; minute <= 999; minute++) {
+      for (let minute = 1; minute <= 999; minute++) {
         if (canAscendDCIEM(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

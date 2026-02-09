@@ -178,7 +178,7 @@ export function calculateWorkman(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, as
       const simTissue = [...tempTissue];
       
       // Stay at stop until M-value allows ascent
-      for (let minute = 0; minute <= 999; minute++) {
+      for (let minute = 1; minute <= 999; minute++) {
         if (canAscendWorkman(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

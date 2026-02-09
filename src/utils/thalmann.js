@@ -218,7 +218,7 @@ export function calculateThalmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
       const simTissue = [...tempTissue];
       
       // Stay at stop until M-value allows ascent
-      for (let minute = 0; minute <= 999; minute++) {
+      for (let minute = 1; minute <= 999; minute++) {
         if (canAscendThalmann(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

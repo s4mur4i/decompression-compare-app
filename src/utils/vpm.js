@@ -188,7 +188,7 @@ export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascent
       const simTissue = [...workingTissue];
       const nextAmbient = depthToPressure(nextStop);
 
-      for (let minute = 0; minute <= 999; minute++) {
+      for (let minute = 1; minute <= 999; minute++) {
         let canAscend = true;
         for (let i = 0; i < 16; i++) {
           const maxGradient = gradients[i] * gfFactor * boyleFactor;

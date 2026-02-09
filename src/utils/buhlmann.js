@@ -218,7 +218,7 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
       const simN2 = [...wN2];
       const simHe = hasHe ? [...wHe] : null;
 
-      for (let minute = 0; minute <= 999; minute++) {
+      for (let minute = 1; minute <= 999; minute++) {
         if (canAscendTo(simN2, simHe, nextStop, Math.min(gfAtStop, gfHigh), paramSet)) {
           stopTime = minute;
           break;
@@ -239,12 +239,11 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
       const isGasSwitch = prevGasLabel && gasLabel !== prevGasLabel;
       
       if (isGasSwitch) {
-        // Insert gas switch marker
+        // Gas switch marker (time added by UI toggle)
         decoStops.push({ depth: currentStop, time: 0, gas: gasLabel, gasSwitch: true });
       }
-      if (stopTime > 0) {
-        decoStops.push({ depth: currentStop, time: stopTime, gas: gasLabel });
-      }
+      // Every deco stop is minimum 1 min
+      decoStops.push({ depth: currentStop, time: Math.max(1, stopTime), gas: gasLabel });
       prevGasLabel = gasLabel;
 
       // Update working tissue

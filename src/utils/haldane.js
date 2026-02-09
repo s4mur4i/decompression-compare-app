@@ -139,7 +139,7 @@ export function calculateHaldane(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, as
       const simTissue = [...tempTissue];
       
       // Wait at stop until 2:1 criterion allows ascent
-      for (let minute = 0; minute <= 999; minute++) {
+      for (let minute = 1; minute <= 999; minute++) {
         if (canAscendHaldane(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

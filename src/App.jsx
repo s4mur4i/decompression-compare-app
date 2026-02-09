@@ -199,17 +199,25 @@ function App() {
       }
     }
     
-    // Algorithm B MOD (compare mode, only if different)
+    // Algorithm B (compare mode)
     if (compareMode && algorithmB !== 'none') {
       const modB = calcMOD(fO2B, ppO2MaxB);
       const modA = algorithmA !== 'none' ? calcMOD(fO2A, ppO2MaxA) : -1;
       if (modB !== modA) {
         lines.push({ depth: modB, color: '#ff8800', dash: [6, 4], label: `MOD ${modB}m (B)` });
       }
+      if (decoGas1B?.fO2) {
+        const d = calcMOD(decoGas1B.fO2, ppO2DecoB);
+        lines.push({ depth: d, color: '#aa7744', dash: [4, 4], label: `B S1 switch ${d}m` });
+      }
+      if (decoGas2B?.fO2) {
+        const d = calcMOD(decoGas2B.fO2, ppO2DecoB);
+        lines.push({ depth: d, color: '#886633', dash: [4, 4], label: `B S2 switch ${d}m` });
+      }
     }
     
     return lines;
-  }, [algorithmA, algorithmB, fO2A, fO2B, ppO2MaxA, ppO2MaxB, ppO2DecoA, ppO2DecoB, decoGas1A, decoGas2A, compareMode, stops]);
+  }, [algorithmA, algorithmB, fO2A, fO2B, ppO2MaxA, ppO2MaxB, ppO2DecoA, ppO2DecoB, decoGas1A, decoGas2A, decoGas1B, decoGas2B, compareMode, stops]);
 
   // MOD violation check
   const modViolationA = useMemo(() => {

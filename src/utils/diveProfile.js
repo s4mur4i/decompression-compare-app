@@ -73,18 +73,20 @@ export function addAscentPhases(profile, ascentStops, ascentRate) {
       newPoints.push({ time: currentTime, depth: currentDepth });
     }
 
-    // Show gas switch marker only when explicitly flagged by algorithm
     if (stop.gasSwitch) {
+      // Gas switch: show as its own phase with its time (0 or 1 min from toggle)
       newPhases.push({
         depth: currentDepth,
-        duration: 0,
+        duration: stop.time,
         runTime: currentTime,
         action: 'Gas Switch',
         gas: stop.gas,
       });
-    }
-
-    if (stop.time > 0) {
+      if (stop.time > 0) {
+        currentTime += stop.time;
+        newPoints.push({ time: currentTime, depth: currentDepth });
+      }
+    } else if (stop.time > 0) {
       newPhases.push({
         depth: currentDepth,
         duration: stop.time,

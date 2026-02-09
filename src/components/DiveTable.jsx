@@ -6,19 +6,6 @@ export default function DiveTable({ phases, color = '#4fc3f7' }) {
 
   for (let i = 0; i < phases.length; i++) {
     const phase = phases[i];
-    
-    // Gas switch rows have 0 duration, show as marker
-    if (phase.action === 'Gas Switch') {
-      rows.push({
-        depth: `${phase.depth}m`,
-        duration: null,
-        runTime: phase.runTime,
-        action: 'Gas Switch',
-        gas: phase.gas,
-      });
-      continue;
-    }
-    
     runTime = phase.runTime + phase.duration;
 
     let depthDisplay;
@@ -54,7 +41,7 @@ export default function DiveTable({ phases, color = '#4fc3f7' }) {
           {rows.map((row, i) => (
             <tr key={i} className={row.action === 'Gas Switch' ? 'gas-switch-row' : ''}>
               <td>{row.depth}</td>
-              <td>{row.duration !== null ? `${row.duration} min` : '—'}</td>
+              <td>{row.duration > 0 ? `${row.duration} min` : '—'}</td>
               <td>{row.runTime} min</td>
               <td>
                 <span className={`action-badge ${row.action.toLowerCase().replace(/\s+/g, '-')}`}>

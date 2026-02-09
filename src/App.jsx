@@ -121,6 +121,16 @@ function App() {
       if (p.get('ascentA')) setAscentRateA(Number(p.get('ascentA')));
       if (p.get('descentB')) setDescentRateB(Number(p.get('descentB')));
       if (p.get('ascentB')) setAscentRateB(Number(p.get('ascentB')));
+      if (p.get('ppo2A')) setPpO2MaxA(Number(p.get('ppo2A')));
+      if (p.get('ppo2B')) setPpO2MaxB(Number(p.get('ppo2B')));
+      if (p.get('ppo2dA')) setPpO2DecoA(Number(p.get('ppo2dA')));
+      if (p.get('ppo2dB')) setPpO2DecoB(Number(p.get('ppo2dB')));
+      if (p.get('s1A')) setDecoGas1A({ fO2: Number(p.get('s1A')) / 100 });
+      if (p.get('s2A')) setDecoGas2A({ fO2: Number(p.get('s2A')) / 100 });
+      if (p.get('s1B')) setDecoGas1B({ fO2: Number(p.get('s1B')) / 100 });
+      if (p.get('s2B')) setDecoGas2B({ fO2: Number(p.get('s2B')) / 100 });
+      if (p.get('gstA') === '0') setGasSwitchTimeA(false);
+      if (p.get('gstB') === '0') setGasSwitchTimeB(false);
     } else {
       if (p.get('algo')) setAlgorithmA(p.get('algo'));
       if (p.get('o2')) setFO2A(Number(p.get('o2')) / 100);
@@ -129,6 +139,11 @@ function App() {
       if (p.get('gfh')) setGfHighA(Number(p.get('gfh')));
       if (p.get('descent')) setDescentRateA(Number(p.get('descent')));
       if (p.get('ascent')) setAscentRateA(Number(p.get('ascent')));
+      if (p.get('ppo2')) setPpO2MaxA(Number(p.get('ppo2')));
+      if (p.get('ppo2d')) setPpO2DecoA(Number(p.get('ppo2d')));
+      if (p.get('s1')) setDecoGas1A({ fO2: Number(p.get('s1')) / 100 });
+      if (p.get('s2')) setDecoGas2A({ fO2: Number(p.get('s2')) / 100 });
+      if (p.get('gst') === '0') setGasSwitchTimeA(false);
     }
     setInitialized(true);
   }, []);
@@ -155,6 +170,16 @@ function App() {
       if (ascentRateA !== 9) p.set('ascentA', ascentRateA);
       if (descentRateB !== 18) p.set('descentB', descentRateB);
       if (ascentRateB !== 9) p.set('ascentB', ascentRateB);
+      if (ppO2MaxA !== 1.4) p.set('ppo2A', ppO2MaxA);
+      if (ppO2MaxB !== 1.4) p.set('ppo2B', ppO2MaxB);
+      if (ppO2DecoA !== 1.6) p.set('ppo2dA', ppO2DecoA);
+      if (ppO2DecoB !== 1.6) p.set('ppo2dB', ppO2DecoB);
+      if (decoGas1A) p.set('s1A', Math.round(decoGas1A.fO2 * 100));
+      if (decoGas2A) p.set('s2A', Math.round(decoGas2A.fO2 * 100));
+      if (decoGas1B) p.set('s1B', Math.round(decoGas1B.fO2 * 100));
+      if (decoGas2B) p.set('s2B', Math.round(decoGas2B.fO2 * 100));
+      if (!gasSwitchTimeA) p.set('gstA', '0');
+      if (!gasSwitchTimeB) p.set('gstB', '0');
     } else {
       if (algorithmA !== 'none') p.set('algo', algorithmA);
       if (fO2A !== 0.21) p.set('o2', Math.round(fO2A * 100));
@@ -163,9 +188,14 @@ function App() {
       if (gfHighA !== 70) p.set('gfh', gfHighA);
       if (descentRateA !== 18) p.set('descent', descentRateA);
       if (ascentRateA !== 9) p.set('ascent', ascentRateA);
+      if (ppO2MaxA !== 1.4) p.set('ppo2', ppO2MaxA);
+      if (ppO2DecoA !== 1.6) p.set('ppo2d', ppO2DecoA);
+      if (decoGas1A) p.set('s1', Math.round(decoGas1A.fO2 * 100));
+      if (decoGas2A) p.set('s2', Math.round(decoGas2A.fO2 * 100));
+      if (!gasSwitchTimeA) p.set('gst', '0');
     }
     window.history.replaceState(null, '', `${window.location.pathname}?${p.toString()}`);
-  }, [stops, compareMode, algorithmA, algorithmB, fO2A, fO2B, fHeA, fHeB, gfLowA, gfHighA, gfLowB, gfHighB, descentRateA, ascentRateA, descentRateB, ascentRateB, initialized]);
+  }, [stops, compareMode, algorithmA, algorithmB, fO2A, fO2B, fHeA, fHeB, gfLowA, gfHighA, gfLowB, gfHighB, descentRateA, ascentRateA, descentRateB, ascentRateB, ppO2MaxA, ppO2MaxB, ppO2DecoA, ppO2DecoB, decoGas1A, decoGas2A, decoGas1B, decoGas2B, gasSwitchTimeA, gasSwitchTimeB, initialized]);
 
   // Results
   const resultA = useMemo(() => {

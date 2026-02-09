@@ -187,7 +187,19 @@ function App() {
           <DiveStops stops={stops} onStopsChange={setStops} />
         </div>
 
-        {/* Algorithm Panels */}
+        {/* Chart — above summaries/tables */}
+        <div className="chart-panel">
+          <DiveChart 
+            profiles={compareMode ? [
+              { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
+              { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
+            ] : [
+              { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
+            ]} 
+          />
+        </div>
+
+        {/* Algorithm Panels — settings, summary, table */}
         <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
           {/* Algorithm A */}
           <div className="algorithm-panel panel-a">
@@ -246,18 +258,6 @@ function App() {
               <DiveTable phases={resultB?.phases || []} color="#ff9800" />
             </div>
           )}
-        </div>
-
-        {/* Chart */}
-        <div className="chart-panel">
-          <DiveChart 
-            profiles={compareMode ? [
-              { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
-              { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
-            ] : [
-              { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
-            ]} 
-          />
         </div>
 
         {/* Share Link — very bottom */}

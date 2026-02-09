@@ -166,13 +166,20 @@ h3 {
 /* Settings */
 .setting-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .setting-row label {
   font-size: 0.85rem;
   color: #b0bec5;
+  min-width: 120px;
+  flex-shrink: 0;
+}
+
+.setting-row .rate-input,
+.setting-row .algo-select {
+  margin-left: auto;
 }
 
 .rate-input {

@@ -3,7 +3,7 @@ export default function DiveSettings({ descentRate, onDescentRateChange }) {
     <div className="dive-settings">
       <h3>Settings</h3>
       <div className="setting-row">
-        <label>Descent / Ascent Rate</label>
+        <label>Descent Rate</label>
         <div className="rate-input">
           <input
             type="number"

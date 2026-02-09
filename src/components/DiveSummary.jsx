@@ -5,11 +5,6 @@ export default function DiveSummary({ stops, profile, descentRate }) {
 
   const totalTime = getTotalTime(profile);
   const maxDepth = getMaxDepth(stops);
-  const ascentTime = Math.ceil(stops[stops.length - 1]?.depth / descentRate) || 0;
-  const descentTotal = stops.reduce((acc, stop, i) => {
-    const prevDepth = i === 0 ? 0 : stops[i - 1].depth;
-    return acc + Math.ceil(Math.abs(stop.depth - prevDepth) / descentRate);
-  }, 0);
   const bottomTime = stops.reduce((acc, s) => acc + s.time, 0);
 
   return (
@@ -23,10 +18,6 @@ export default function DiveSummary({ stops, profile, descentRate }) {
         <div className="summary-item">
           <span className="summary-label">Bottom Time</span>
           <span className="summary-value">{bottomTime} min</span>
-        </div>
-        <div className="summary-item">
-          <span className="summary-label">Transit Time</span>
-          <span className="summary-value">{descentTotal + ascentTime} min</span>
         </div>
         <div className="summary-item">
           <span className="summary-label">Total Dive Time</span>

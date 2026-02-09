@@ -20,12 +20,6 @@ function App() {
 
     if (plan) {
       setStops(parsePlan(plan));
-    } else {
-      // Default example
-      setStops([
-        { depth: 25, time: 10 },
-        { depth: 20, time: 5 },
-      ]);
     }
 
     if (descent) {

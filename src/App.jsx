@@ -31,6 +31,7 @@ function App() {
   const [ppO2DecoA, setPpO2DecoA] = useState(1.6);
   const [decoGas1A, setDecoGas1A] = useState(null);
   const [decoGas2A, setDecoGas2A] = useState(null);
+  const [gasSwitchTimeA, setGasSwitchTimeA] = useState(true); // 1 min gas switch time
   
   // Algorithm B
   const [algorithmB, setAlgorithmB] = useState('zhl16c');
@@ -44,6 +45,7 @@ function App() {
   const [ppO2DecoB, setPpO2DecoB] = useState(1.6);
   const [decoGas1B, setDecoGas1B] = useState(null);
   const [decoGas2B, setDecoGas2B] = useState(null);
+  const [gasSwitchTimeB, setGasSwitchTimeB] = useState(true);
   
   const [initialized, setInitialized] = useState(false);
 
@@ -81,12 +83,16 @@ function App() {
     return null;
   };
 
-  const calculateFull = (algorithm, fO2, fHe, gfLow, gfHigh, descentRate, ascentRate, decoGas1, decoGas2, ppO2Deco) => {
+  const calculateFull = (algorithm, fO2, fHe, gfLow, gfHigh, descentRate, ascentRate, decoGas1, decoGas2, ppO2Deco, gasSwitchTime = true) => {
     if (stops.length === 0) return null;
     const profile = calculateDiveProfile(stops, descentRate, ascentRate);
     const decoInfo = runAlgorithm(algorithm, fO2, fHe, gfLow, gfHigh, ascentRate, profile.phases, decoGas1, decoGas2, ppO2Deco);
     if (decoInfo) {
-      const fullProfile = addAscentPhases(profile, decoInfo.decoStops, ascentRate);
+      // Add 1 min to gas switch stops if toggle enabled
+      const adjustedStops = gasSwitchTime
+        ? decoInfo.decoStops.map(s => s.gasSwitch ? { ...s, time: 1 } : s)
+        : decoInfo.decoStops;
+      const fullProfile = addAscentPhases(profile, adjustedStops, ascentRate);
       return { ...fullProfile, decoInfo };
     } else {
       const fullProfile = simpleAscent(profile, ascentRate);
@@ -163,13 +169,13 @@ function App() {
 
   // Results
   const resultA = useMemo(() => {
-    return calculateFull(algorithmA, fO2A, fHeA, gfLowA, gfHighA, descentRateA, ascentRateA, decoGas1A, decoGas2A, ppO2DecoA);
-  }, [stops, algorithmA, fO2A, fHeA, gfLowA, gfHighA, descentRateA, ascentRateA, decoGas1A, decoGas2A, ppO2DecoA]);
+    return calculateFull(algorithmA, fO2A, fHeA, gfLowA, gfHighA, descentRateA, ascentRateA, decoGas1A, decoGas2A, ppO2DecoA, gasSwitchTimeA);
+  }, [stops, algorithmA, fO2A, fHeA, gfLowA, gfHighA, descentRateA, ascentRateA, decoGas1A, decoGas2A, ppO2DecoA, gasSwitchTimeA]);
 
   const resultB = useMemo(() => {
     if (!compareMode) return null;
-    return calculateFull(algorithmB, fO2B, fHeB, gfLowB, gfHighB, descentRateB, ascentRateB, decoGas1B, decoGas2B, ppO2DecoB);
-  }, [stops, compareMode, algorithmB, fO2B, fHeB, gfLowB, gfHighB, descentRateB, ascentRateB, decoGas1B, decoGas2B, ppO2DecoB]);
+    return calculateFull(algorithmB, fO2B, fHeB, gfLowB, gfHighB, descentRateB, ascentRateB, decoGas1B, decoGas2B, ppO2DecoB, gasSwitchTimeB);
+  }, [stops, compareMode, algorithmB, fO2B, fHeB, gfLowB, gfHighB, descentRateB, ascentRateB, decoGas1B, decoGas2B, ppO2DecoB, gasSwitchTimeB]);
 
   const timeDifference = useMemo(() => {
     if (!compareMode || !resultA || !resultB) return null;
@@ -265,6 +271,7 @@ function App() {
               ppO2Deco={ppO2DecoA} onPpO2DecoChange={setPpO2DecoA}
               decoGas1={decoGas1A} onDecoGas1Change={setDecoGas1A}
               decoGas2={decoGas2A} onDecoGas2Change={setDecoGas2A}
+              gasSwitchTime={gasSwitchTimeA} onGasSwitchTimeChange={setGasSwitchTimeA}
               color="#4fc3f7"
             />
           </div>
@@ -283,6 +290,7 @@ function App() {
                 ppO2Deco={ppO2DecoB} onPpO2DecoChange={setPpO2DecoB}
                 decoGas1={decoGas1B} onDecoGas1Change={setDecoGas1B}
                 decoGas2={decoGas2B} onDecoGas2Change={setDecoGas2B}
+                gasSwitchTime={gasSwitchTimeB} onGasSwitchTimeChange={setGasSwitchTimeB}
                 color="#ff9800"
               />
             </div>

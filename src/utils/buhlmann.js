@@ -236,11 +236,14 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
       }
 
       const gasLabel = `${Math.round(gas.fO2*100)}/${Math.round((gas.fHe||0)*100)}`;
+      const isGasSwitch = prevGasLabel && gasLabel !== prevGasLabel;
+      
+      if (isGasSwitch) {
+        // Insert gas switch marker
+        decoStops.push({ depth: currentStop, time: 0, gas: gasLabel, gasSwitch: true });
+      }
       if (stopTime > 0) {
         decoStops.push({ depth: currentStop, time: stopTime, gas: gasLabel });
-      } else if (prevGasLabel && gasLabel !== prevGasLabel) {
-        // Always show gas switch even if 0-time stop
-        decoStops.push({ depth: currentStop, time: 0, gas: gasLabel, gasSwitch: true });
       }
       prevGasLabel = gasLabel;
 

@@ -35,6 +35,7 @@ export default function DiveSettings({
   ppO2Deco = 1.6, onPpO2DecoChange,
   decoGas1 = null, onDecoGas1Change,
   decoGas2 = null, onDecoGas2Change,
+  gasSwitchTime = true, onGasSwitchTimeChange,
   color = '#4fc3f7',
 }) {
   const algo = ALGORITHMS[algorithm] || {};
@@ -209,6 +210,16 @@ export default function DiveSettings({
                   </div>
                 )}
               </div>
+              {(decoGas1 || decoGas2) && onGasSwitchTimeChange && (
+                <div className="deco-gas-row" style={{ marginTop: '8px' }}>
+                  <label className="deco-gas-toggle">
+                    <input type="checkbox"
+                      checked={gasSwitchTime}
+                      onChange={(e) => onGasSwitchTimeChange(e.target.checked)} />
+                    +1 min gas switch
+                  </label>
+                </div>
+              )}
             </>
           )}
 

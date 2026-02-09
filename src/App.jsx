@@ -7,6 +7,8 @@ import DiveTable from './components/DiveTable';
 import ShareLink from './components/ShareLink';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateBuhlmann } from './utils/buhlmann';
+import { calculateVPM } from './utils/vpm';
+import { calculateRGBM } from './utils/rgbm';
 import './App.css';
 
 function App() {
@@ -64,6 +66,14 @@ function App() {
 
     if (algorithm === 'buhlmann') {
       decoInfo = calculateBuhlmann(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'vpm') {
+      decoInfo = calculateVPM(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
+      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      return { ...fullProfile, decoInfo };
+    } else if (algorithm === 'rgbm') {
+      decoInfo = calculateRGBM(baseProfile.phases, fO2, gfLow, gfHigh, ascentRate);
       const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
       return { ...fullProfile, decoInfo };
     } else {

@@ -225,4 +225,12 @@ export const ALGORITHMS = {
     name: 'Bühlmann ZHL-16C',
     description: 'Most widely used deco algorithm. Uses 16 tissue compartments with gradient factors.',
   },
+  vpm: {
+    name: 'VPM-B',
+    description: 'Varying Permeability Model with bubble mechanics. Produces deeper first stops than Bühlmann.',
+  },
+  rgbm: {
+    name: 'RGBM',
+    description: 'Reduced Gradient Bubble Model. Dual-phase algorithm with explicit bubble tracking.',
+  },
 };

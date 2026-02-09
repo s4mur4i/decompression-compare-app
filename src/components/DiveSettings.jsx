@@ -126,7 +126,7 @@ export default function DiveSettings({
           <div className="setting-row">
             <label>Bottom ppO₂</label>
             <div className="rate-input">
-              <NumInput value={ppO2Max} min={1.0} max={2.0} step={0.1}
+              <NumInput value={ppO2Max} min={1.0} max={1.4} step={0.1}
                 onChange={(v) => onPpO2MaxChange(typeof v === 'number' ? v : 1.6)}
                 onBlur={(v) => onPpO2MaxChange(v)} />
               <span>bar</span>
@@ -137,7 +137,7 @@ export default function DiveSettings({
             <div className="setting-row">
               <label>Deco ppO₂</label>
               <div className="rate-input">
-                <NumInput value={ppO2Deco} min={1.0} max={1.8} step={0.1}
+                <NumInput value={ppO2Deco} min={1.0} max={1.6} step={0.1}
                   onChange={(v) => onPpO2DecoChange(typeof v === 'number' ? v : 1.4)}
                   onBlur={(v) => onPpO2DecoChange(v)} />
                 <span>bar</span>

@@ -39,9 +39,10 @@ function App() {
   const [initialized, setInitialized] = useState(false);
 
   // Calculate algorithm function
-  const calculateAlgorithm = (algorithm, fO2, gfLow, gfHigh, phases) => {
+  const calculateAlgorithm = (algorithm, fO2, gfLow, gfHigh, profile) => {
+    if (!profile) return null;
     let decoInfo = null;
-    const baseProfile = { phases };
+    const phases = profile.phases;
 
     if (algorithm === 'zhl16a') {
       decoInfo = calculateZHL16A(phases, fO2, gfLow, gfHigh, ascentRate);
@@ -72,10 +73,10 @@ function App() {
     }
 
     if (decoInfo) {
-      const fullProfile = addAscentPhases(baseProfile, decoInfo.decoStops, ascentRate);
+      const fullProfile = addAscentPhases(profile, decoInfo.decoStops, ascentRate);
       return { ...fullProfile, decoInfo };
     } else {
-      const fullProfile = simpleAscent(baseProfile, ascentRate);
+      const fullProfile = simpleAscent(profile, ascentRate);
       return { ...fullProfile, decoInfo };
     }
   };
@@ -167,12 +168,12 @@ function App() {
 
   const resultA = useMemo(() => {
     if (!baseProfile) return null;
-    return calculateAlgorithm(algorithmA, fO2A, gfLowA, gfHighA, baseProfile.phases);
+    return calculateAlgorithm(algorithmA, fO2A, gfLowA, gfHighA, baseProfile);
   }, [baseProfile, algorithmA, fO2A, gfLowA, gfHighA, ascentRate]);
 
   const resultB = useMemo(() => {
     if (!baseProfile || !compareMode) return null;
-    return calculateAlgorithm(algorithmB, fO2B, gfLowB, gfHighB, baseProfile.phases);
+    return calculateAlgorithm(algorithmB, fO2B, gfLowB, gfHighB, baseProfile);
   }, [baseProfile, compareMode, algorithmB, fO2B, gfLowB, gfHighB, ascentRate]);
 
   // Calculate time difference for compare mode

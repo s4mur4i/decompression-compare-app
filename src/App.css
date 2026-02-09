@@ -494,6 +494,21 @@ input.invalid {
   color: #ff8a65;
 }
 
+.action-badge.gas-switch {
+  background: rgba(156, 39, 176, 0.2);
+  color: #ce93d8;
+}
+
+.gas-switch-row {
+  background: rgba(156, 39, 176, 0.05) !important;
+}
+
+.gas-label {
+  font-size: 0.7rem;
+  color: #78909c;
+  margin-left: 6px;
+}
+
 /* Settings divider & subtitle */
 .settings-divider {
   height: 1px;

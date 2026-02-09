@@ -57,6 +57,7 @@ export function addAscentPhases(profile, ascentStops, ascentRate) {
   const newPhases = [...phases];
   let currentTime = lastStopEnd;
   let currentDepth = lastDepth;
+  let currentGas = null; // track current gas for switch detection
 
   for (const stop of ascentStops) {
     const depthDiff = Math.abs(currentDepth - stop.depth);
@@ -74,12 +75,25 @@ export function addAscentPhases(profile, ascentStops, ascentRate) {
       newPoints.push({ time: currentTime, depth: currentDepth });
     }
 
+    // Check for gas change
+    if (stop.gas && stop.gas !== currentGas) {
+      newPhases.push({
+        depth: currentDepth,
+        duration: 0,
+        runTime: currentTime,
+        action: 'Gas Switch',
+        gas: stop.gas,
+      });
+      currentGas = stop.gas;
+    }
+
     if (stop.time > 0) {
       newPhases.push({
         depth: currentDepth,
         duration: stop.time,
         runTime: currentTime,
         action: 'Deco Stop',
+        gas: stop.gas || undefined,
       });
       currentTime += stop.time;
       newPoints.push({ time: currentTime, depth: currentDepth });

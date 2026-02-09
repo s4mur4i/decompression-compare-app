@@ -132,14 +132,14 @@ function canAscendTo(n2Loading, heLoading, nextDepth, gfAtStop, paramSet) {
 
 /**
  * Get the active gas at a given depth during ascent, considering gas switches.
- * gasSwitches: [{depth, fO2, fHe}] sorted deepest first
+ * Pick the shallowest gas whose switch depth >= current depth.
+ * E.g. at 3m with switches at 22m (EAN50) and 6m (O2): use O2 (6>=3, shallowest).
  */
 function getGasAtDepth(depth, bottomGas, gasSwitches) {
   if (!gasSwitches || gasSwitches.length === 0) return bottomGas;
   
-  // Find the deepest switch gas whose switch depth is >= current depth
-  // (we switch when ascending through the switch depth)
-  for (const gas of gasSwitches) {
+  const sorted = [...gasSwitches].sort((a, b) => a.depth - b.depth);
+  for (const gas of sorted) {
     if (depth <= gas.depth) {
       return { fO2: gas.fO2, fHe: gas.fHe || 0, fN2: 1 - gas.fO2 - (gas.fHe || 0) };
     }

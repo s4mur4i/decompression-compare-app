@@ -1,17 +1,28 @@
 export default function DiveTable({ phases, color = '#4fc3f7' }) {
   if (!phases || phases.length === 0) return null;
 
-  // Build display rows with cumulative runtime and depth ranges
   const rows = [];
   let runTime = 0;
 
   for (let i = 0; i < phases.length; i++) {
     const phase = phases[i];
+    
+    // Gas switch rows have 0 duration, show as marker
+    if (phase.action === 'Gas Switch') {
+      rows.push({
+        depth: `${phase.depth}m`,
+        duration: null,
+        runTime: phase.runTime,
+        action: 'Gas Switch',
+        gas: phase.gas,
+      });
+      continue;
+    }
+    
     runTime = phase.runTime + phase.duration;
 
     let depthDisplay;
     if (phase.action === 'Descend' || phase.action === 'Ascend') {
-      // Show range: find where we came from
       const prevDepth = i === 0 ? 0 : phases[i - 1].depth;
       depthDisplay = `${prevDepth}-${phase.depth}m`;
     } else {
@@ -23,6 +34,7 @@ export default function DiveTable({ phases, color = '#4fc3f7' }) {
       duration: phase.duration,
       runTime,
       action: phase.action,
+      gas: phase.gas,
     });
   }
 
@@ -40,14 +52,15 @@ export default function DiveTable({ phases, color = '#4fc3f7' }) {
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i}>
+            <tr key={i} className={row.action === 'Gas Switch' ? 'gas-switch-row' : ''}>
               <td>{row.depth}</td>
-              <td>{row.duration} min</td>
+              <td>{row.duration !== null ? `${row.duration} min` : '—'}</td>
               <td>{row.runTime} min</td>
               <td>
                 <span className={`action-badge ${row.action.toLowerCase().replace(/\s+/g, '-')}`}>
                   {row.action}
                 </span>
+                {row.gas && <span className="gas-label">{row.gas}</span>}
               </td>
             </tr>
           ))}

@@ -27,8 +27,8 @@ function App() {
   const [gfHighA, setGfHighA] = useState(70);
   const [descentRateA, setDescentRateA] = useState(18);
   const [ascentRateA, setAscentRateA] = useState(9);
-  const [ppO2MaxA, setPpO2MaxA] = useState(1.6);
-  const [ppO2DecoA, setPpO2DecoA] = useState(1.4);
+  const [ppO2MaxA, setPpO2MaxA] = useState(1.4);
+  const [ppO2DecoA, setPpO2DecoA] = useState(1.6);
   const [decoGas1A, setDecoGas1A] = useState(null);
   const [decoGas2A, setDecoGas2A] = useState(null);
   
@@ -40,8 +40,8 @@ function App() {
   const [gfHighB, setGfHighB] = useState(70);
   const [descentRateB, setDescentRateB] = useState(18);
   const [ascentRateB, setAscentRateB] = useState(9);
-  const [ppO2MaxB, setPpO2MaxB] = useState(1.6);
-  const [ppO2DecoB, setPpO2DecoB] = useState(1.4);
+  const [ppO2MaxB, setPpO2MaxB] = useState(1.4);
+  const [ppO2DecoB, setPpO2DecoB] = useState(1.6);
   const [decoGas1B, setDecoGas1B] = useState(null);
   const [decoGas2B, setDecoGas2B] = useState(null);
   

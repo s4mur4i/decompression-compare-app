@@ -1,103 +1,80 @@
 /**
- * Bühlmann ZHL decompression algorithm implementation with all variants.
- * 
- * Calculates tissue loading and required decompression stops
- * based on various ZHL compartment models with gradient factors.
+ * Bühlmann ZHL decompression algorithm with trimix and multi-gas support.
  */
 
-// Helper function to calculate a-value from half-time
 function calculateAValue(halfTime) {
   return 2 * Math.pow(halfTime, -1/3);
 }
 
-// Helper function to calculate b-value from half-time
 function calculateBValue(halfTime) {
   return 1.005 - Math.pow(halfTime, -1/2);
 }
 
-// ZHL-16C compartment half-times (minutes) - shared across variants
-const ZHL16_HALFTIMES = [
-  4.0, 8.0, 12.5, 18.5, 27.0, 38.3, 54.3, 77.0, 109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0
-];
+const ZHL16_HALFTIMES = [4.0, 8.0, 12.5, 18.5, 27.0, 38.3, 54.3, 77.0, 109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0];
 
-// Parameter sets for different ZHL variants
+// Helium half-times (approximately 2.65x faster than N₂)
+const ZHL16_HE_HALFTIMES = [1.51, 3.02, 4.72, 6.99, 10.21, 14.48, 20.53, 29.11, 41.20, 55.19, 70.69, 90.34, 115.29, 147.42, 188.24, 240.03];
+
+// Helium a and b values (from ZHL-16A He parameters)
+const ZHL16_HE_A = [1.6189, 1.3830, 1.1919, 1.0458, 0.9220, 0.8205, 0.7305, 0.6502, 0.5950, 0.5545, 0.5333, 0.5189, 0.5181, 0.5176, 0.5172, 0.5119];
+const ZHL16_HE_B = [0.4770, 0.5747, 0.6527, 0.7223, 0.7582, 0.7957, 0.8279, 0.8553, 0.8757, 0.8903, 0.8997, 0.9073, 0.9122, 0.9171, 0.9217, 0.9267];
+
 const PARAM_SETS = {
   'zhl16a': {
-    name: 'ZH-L 16A',
-    compartments: 16,
-    halfTimes: ZHL16_HALFTIMES,
-    // Original theoretical a-values derived from half-times
+    name: 'ZH-L 16A', compartments: 16, halfTimes: ZHL16_HALFTIMES,
     aValues: [1.2599, 1.0000, 0.8618, 0.7562, 0.6200, 0.5043, 0.4410, 0.4000, 0.3750, 0.3500, 0.3295, 0.3065, 0.2835, 0.2610, 0.2480, 0.2327],
-    // b-values from ZH-L16C (same across variants)
-    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653]
+    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653],
+    heHalfTimes: ZHL16_HE_HALFTIMES, heA: ZHL16_HE_A, heB: ZHL16_HE_B,
   },
   'zhl16b': {
-    name: 'ZH-L 16B',
-    compartments: 16,
-    halfTimes: ZHL16_HALFTIMES,
-    // Same as 16A but reduced 'a' for compartments 6,7,8
+    name: 'ZH-L 16B', compartments: 16, halfTimes: ZHL16_HALFTIMES,
     aValues: [1.2599, 1.0000, 0.8618, 0.7562, 0.6200, 0.4770, 0.4170, 0.3798, 0.3750, 0.3500, 0.3295, 0.3065, 0.2835, 0.2610, 0.2480, 0.2327],
-    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653]
+    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653],
+    heHalfTimes: ZHL16_HE_HALFTIMES, heA: ZHL16_HE_A, heB: ZHL16_HE_B,
   },
   'zhl16c': {
-    name: 'ZH-L 16C',
-    compartments: 16,
-    halfTimes: ZHL16_HALFTIMES,
-    // Wikipedia values - note compartment 1 differs from 16A: 1.1696 vs 1.2599
+    name: 'ZH-L 16C', compartments: 16, halfTimes: ZHL16_HALFTIMES,
     aValues: [1.1696, 1.0000, 0.8618, 0.7562, 0.6200, 0.5043, 0.4410, 0.4000, 0.3750, 0.3500, 0.3295, 0.3065, 0.2835, 0.2610, 0.2480, 0.2327],
-    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653]
+    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653],
+    heHalfTimes: ZHL16_HE_HALFTIMES, heA: ZHL16_HE_A, heB: ZHL16_HE_B,
   },
   'zhl12': {
-    name: 'ZH-L 12',
-    compartments: 16,
-    halfTimes: ZHL16_HALFTIMES,
-    // Use ZH-L16A values for historical compatibility
+    name: 'ZH-L 12', compartments: 16, halfTimes: ZHL16_HALFTIMES,
     aValues: [1.2599, 1.0000, 0.8618, 0.7562, 0.6200, 0.5043, 0.4410, 0.4000, 0.3750, 0.3500, 0.3295, 0.3065, 0.2835, 0.2610, 0.2480, 0.2327],
-    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653]
+    bValues: [0.5578, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653],
+    heHalfTimes: ZHL16_HE_HALFTIMES, heA: ZHL16_HE_A, heB: ZHL16_HE_B,
   },
   'zhl6': {
-    name: 'ZH-L 6',
-    compartments: 6,
+    name: 'ZH-L 6', compartments: 6,
     halfTimes: [6, 14, 34, 64, 124, 320],
-    // Calculate a and b from formulas
     aValues: [6, 14, 34, 64, 124, 320].map(t => calculateAValue(t)),
-    bValues: [6, 14, 34, 64, 124, 320].map(t => calculateBValue(t))
+    bValues: [6, 14, 34, 64, 124, 320].map(t => calculateBValue(t)),
+    heHalfTimes: [6, 14, 34, 64, 124, 320].map(t => t / 2.65),
+    heA: [6, 14, 34, 64, 124, 320].map(t => calculateAValue(t / 2.65)),
+    heB: [6, 14, 34, 64, 124, 320].map(t => calculateBValue(t / 2.65)),
   },
   'zhl8adt': {
-    name: 'ZH-L 8 ADT',
-    compartments: 8,
+    name: 'ZH-L 8 ADT', compartments: 8,
     halfTimes: [5, 10, 20, 40, 80, 120, 240, 480],
-    // Calculate a and b from formulas
     aValues: [5, 10, 20, 40, 80, 120, 240, 480].map(t => calculateAValue(t)),
-    bValues: [5, 10, 20, 40, 80, 120, 240, 480].map(t => calculateBValue(t))
+    bValues: [5, 10, 20, 40, 80, 120, 240, 480].map(t => calculateBValue(t)),
+    heHalfTimes: [5, 10, 20, 40, 80, 120, 240, 480].map(t => t / 2.65),
+    heA: [5, 10, 20, 40, 80, 120, 240, 480].map(t => calculateAValue(t / 2.65)),
+    heB: [5, 10, 20, 40, 80, 120, 240, 480].map(t => calculateBValue(t / 2.65)),
   }
 };
 
-// Water vapor pressure in lungs (bar)
 const P_WATER_VAPOR = 0.0627;
-
-// Surface atmospheric pressure (bar)
 const P_SURFACE = 1.01325;
 
-/**
- * Convert depth in meters to absolute pressure in bar (saltwater).
- */
 function depthToPressure(depth) {
-  return P_SURFACE + (depth / 10.0);
+  return P_SURFACE + depth / 10.0;
 }
 
-/**
- * Calculate inspired gas pressure at given depth.
- */
 function inspiredPressure(depth, fGas) {
-  const ambientPressure = depthToPressure(depth);
-  return (ambientPressure - P_WATER_VAPOR) * fGas;
+  return (depthToPressure(depth) - P_WATER_VAPOR) * fGas;
 }
 
-/**
- * Schreiner equation: tissue loading after time at constant depth.
- * P = P0 + (Pi - P0) * (1 - 2^(-t/halfTime))
- */
 function schreiner(p0, pi, time, halfTime) {
   if (time <= 0) return p0;
   const k = Math.LN2 / halfTime;
@@ -105,154 +82,171 @@ function schreiner(p0, pi, time, halfTime) {
 }
 
 /**
- * Calculate M-value (max tolerated pressure) at given ambient pressure
- * using gradient factors.
+ * Calculate combined a and b values for trimix (weighted by tissue loading).
+ * a_combined = (a_N2 * P_N2 + a_He * P_He) / (P_N2 + P_He)
+ * b_combined = (b_N2 * P_N2 + b_He * P_He) / (P_N2 + P_He)
  */
-function mValue(compartment, ambientPressure, gfLow, gfHigh, firstStopDepth, currentDepth, paramSet) {
-  const a = paramSet.aValues[compartment];
-  const b = paramSet.bValues[compartment];
-  const mValue0 = a + ambientPressure / b; // Bühlmann M-value
-
-  // Calculate GF at current depth (linear interpolation between GF_low at first stop and GF_high at surface)
-  let gf;
-  if (firstStopDepth <= 0) {
-    gf = gfHigh;
-  } else {
-    gf = gfHigh + ((gfLow - gfHigh) * currentDepth) / firstStopDepth;
-  }
-  gf = Math.min(gf, gfHigh);
-  gf = Math.max(gf, gfLow);
-
-  // Apply gradient factor
-  const ambientTolerated = ambientPressure + (mValue0 - ambientPressure) * (gf / 100);
-  return ambientTolerated;
+function combinedAB(i, pN2, pHe, paramSet) {
+  const total = pN2 + pHe;
+  if (total <= 0) return { a: paramSet.aValues[i], b: paramSet.bValues[i] };
+  
+  const heIdx = Math.min(i, (paramSet.heA?.length || 1) - 1);
+  const a = (paramSet.aValues[i] * pN2 + paramSet.heA[heIdx] * pHe) / total;
+  const b = (paramSet.bValues[i] * pN2 + paramSet.heB[heIdx] * pHe) / total;
+  return { a, b };
 }
 
 /**
- * Calculate ceiling (minimum depth) for a given tissue state.
+ * Calculate ceiling for trimix tissue state.
  */
-function calcCeiling(tissueLoading, gfLow, gfHigh, firstStopDepth, paramSet) {
+function calcCeiling(n2Loading, heLoading, gfLow, paramSet) {
   let maxCeiling = 0;
+  const gf = gfLow / 100;
 
   for (let i = 0; i < paramSet.compartments; i++) {
-    const a = paramSet.aValues[i];
-    const b = paramSet.bValues[i];
-    const pN2 = tissueLoading[i];
-
-    // Solve for ambient pressure where tissue is at GF limit
-    // Using GF_low for first stop calculation
-    const gf = gfLow / 100;
-    const ceiling = (pN2 - a * gf) / (gf / b - gf + 1);
+    const pTotal = n2Loading[i] + (heLoading ? heLoading[i] : 0);
+    const { a, b } = combinedAB(i, n2Loading[i], heLoading ? heLoading[i] : 0, paramSet);
+    
+    const ceiling = (pTotal - a * gf) / (gf / b - gf + 1);
     const ceilingDepth = Math.max(0, (ceiling - P_SURFACE) * 10);
-
-    if (ceilingDepth > maxCeiling) {
-      maxCeiling = ceilingDepth;
-    }
+    if (ceilingDepth > maxCeiling) maxCeiling = ceilingDepth;
   }
-
   return maxCeiling;
 }
 
 /**
- * Run Bühlmann ZHL decompression calculation with specified variant.
- * 
- * @param {Array<{depth: number, duration: number, action: string}>} phases - Dive phases from profile
- * @param {number} fO2 - Fraction of O2 in breathing gas (e.g., 0.21 for air)
- * @param {number} gfLow - Gradient factor low (e.g., 30)
- * @param {number} gfHigh - Gradient factor high (e.g., 70)
- * @param {number} descentRate - Descent/ascent rate in m/min
- * @param {string} variant - ZHL variant to use ('zhl16a', 'zhl16b', 'zhl16c', 'zhl12', 'zhl6', 'zhl8adt')
- * @returns {Object} Deco stops and tissue data
+ * Check if we can ascend to nextDepth given current tissue state.
  */
-export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9, variant = 'zhl16c') {
-  const paramSet = PARAM_SETS[variant];
-  if (!paramSet) {
-    throw new Error(`Unknown ZHL variant: ${variant}`);
+function canAscendTo(n2Loading, heLoading, nextDepth, gfAtStop, paramSet) {
+  const nextAmbient = depthToPressure(nextDepth);
+  for (let i = 0; i < paramSet.compartments; i++) {
+    const pTotal = n2Loading[i] + (heLoading ? heLoading[i] : 0);
+    const { a, b } = combinedAB(i, n2Loading[i], heLoading ? heLoading[i] : 0, paramSet);
+    
+    const mVal = a + nextAmbient / b;
+    const allowed = nextAmbient + (mVal - nextAmbient) * (gfAtStop / 100);
+    if (pTotal > allowed) return false;
   }
+  return true;
+}
 
-  const fN2 = 1.0 - fO2;
+/**
+ * Get the active gas at a given depth during ascent, considering gas switches.
+ * gasSwitches: [{depth, fO2, fHe}] sorted deepest first
+ */
+function getGasAtDepth(depth, bottomGas, gasSwitches) {
+  if (!gasSwitches || gasSwitches.length === 0) return bottomGas;
+  
+  // Find the deepest switch gas whose switch depth is >= current depth
+  // (we switch when ascending through the switch depth)
+  for (const gas of gasSwitches) {
+    if (depth <= gas.depth) {
+      return { fO2: gas.fO2, fHe: gas.fHe || 0, fN2: 1 - gas.fO2 - (gas.fHe || 0) };
+    }
+  }
+  return bottomGas;
+}
 
-  // Initialize tissue loading at surface equilibrium
-  const surfaceN2 = inspiredPressure(0, fN2);
-  const tissueLoading = new Array(paramSet.compartments).fill(surfaceN2);
+/**
+ * Main Bühlmann calculation with trimix and multi-gas support.
+ */
+export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9, variant = 'zhl16c', fHe = 0, gasSwitches = []) {
+  const paramSet = PARAM_SETS[variant];
+  if (!paramSet) throw new Error(`Unknown variant: ${variant}`);
 
-  // Process each phase to build tissue loading
+  const fN2 = 1.0 - fO2 - fHe;
+  const hasHe = fHe > 0 || gasSwitches.some(g => g.fHe > 0);
+  const bottomGas = { fO2, fHe, fN2 };
+  const nc = paramSet.compartments;
+
+  // Initialize at surface equilibrium
+  const n2Loading = new Array(nc).fill(inspiredPressure(0, fN2));
+  const heLoading = hasHe ? new Array(nc).fill(0) : null;
+
+  // Process bottom phases with bottom gas
   for (const phase of phases) {
-    const pi = inspiredPressure(phase.depth, fN2);
-    const duration = phase.duration;
-
-    for (let i = 0; i < paramSet.compartments; i++) {
-      tissueLoading[i] = schreiner(tissueLoading[i], pi, duration, paramSet.halfTimes[i]);
+    const piN2 = inspiredPressure(phase.depth, fN2);
+    const piHe = hasHe ? inspiredPressure(phase.depth, fHe) : 0;
+    for (let i = 0; i < nc; i++) {
+      n2Loading[i] = schreiner(n2Loading[i], piN2, phase.duration, paramSet.halfTimes[i]);
+      if (hasHe) {
+        const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+        heLoading[i] = schreiner(heLoading[i], piHe, phase.duration, paramSet.heHalfTimes[heIdx]);
+      }
     }
   }
 
-  // Calculate ceiling after bottom phase
-  const rawCeiling = calcCeiling(tissueLoading, gfLow, gfHigh, 0, paramSet);
-
-  // Round ceiling up to next 3m stop
+  // Calculate ceiling
+  const rawCeiling = calcCeiling(n2Loading, heLoading, gfLow, paramSet);
   const firstStopDepth = Math.ceil(rawCeiling / 3) * 3;
 
   // Generate deco stops
   const decoStops = [];
-  const workingTissue = [...tissueLoading];
+  const wN2 = [...n2Loading];
+  const wHe = hasHe ? [...heLoading] : null;
 
   if (firstStopDepth > 0) {
     let currentStop = firstStopDepth;
 
     while (currentStop >= 3) {
-      // Calculate how long we need to stay at this stop
-      let stopTime = 0;
-      const tempTissue = [...workingTissue];
-
-      // Simulate ascent to this stop from previous position
       const prevDepth = currentStop === firstStopDepth
         ? phases[phases.length - 1]?.depth || 0
         : currentStop + 3;
 
-      // Load tissues during transit
-      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / descentRate);
-      const transitPi = inspiredPressure(currentStop, fN2);
-      for (let i = 0; i < paramSet.compartments; i++) {
-        tempTissue[i] = schreiner(tempTissue[i], transitPi, transitTime, paramSet.halfTimes[i]);
+      // Determine gas at this stop
+      const gas = getGasAtDepth(currentStop, bottomGas, gasSwitches);
+
+      // Transit
+      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
+      const transitPiN2 = inspiredPressure(currentStop, gas.fN2);
+      const transitPiHe = hasHe ? inspiredPressure(currentStop, gas.fHe || 0) : 0;
+      for (let i = 0; i < nc; i++) {
+        wN2[i] = schreiner(wN2[i], transitPiN2, transitTime, paramSet.halfTimes[i]);
+        if (hasHe) {
+          const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+          wHe[i] = schreiner(wHe[i], transitPiHe, transitTime, paramSet.heHalfTimes[heIdx]);
+        }
       }
 
-      // Check if we can ascend further
+      // GF at next stop
       const nextStop = currentStop - 3;
-      const nextAmbient = depthToPressure(nextStop);
+      const gfAtStop = gfHigh + ((gfLow - gfHigh) * Math.max(0, nextStop)) / firstStopDepth;
 
-      // Stay until all compartments are below M-value for next stop
-      let canAscend = false;
-      const simTissue = [...tempTissue];
-      
+      // Find stop time
+      let stopTime = 0;
+      const simN2 = [...wN2];
+      const simHe = hasHe ? [...wHe] : null;
+
       for (let minute = 0; minute <= 999; minute++) {
-        canAscend = true;
-        for (let i = 0; i < paramSet.compartments; i++) {
-          const mv = mValue(i, nextAmbient, gfLow, gfHigh, firstStopDepth, currentStop, paramSet);
-          if (simTissue[i] > mv) {
-            canAscend = false;
-            break;
-          }
-        }
-        if (canAscend) {
+        if (canAscendTo(simN2, simHe, nextStop, Math.min(gfAtStop, gfHigh), paramSet)) {
           stopTime = minute;
           break;
         }
-        // Simulate 1 more minute at this stop
-        const pi = inspiredPressure(currentStop, fN2);
-        for (let i = 0; i < paramSet.compartments; i++) {
-          simTissue[i] = schreiner(simTissue[i], pi, 1, paramSet.halfTimes[i]);
+        const piN2 = inspiredPressure(currentStop, gas.fN2);
+        const piHe = hasHe ? inspiredPressure(currentStop, gas.fHe || 0) : 0;
+        for (let i = 0; i < nc; i++) {
+          simN2[i] = schreiner(simN2[i], piN2, 1, paramSet.halfTimes[i]);
+          if (hasHe) {
+            const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+            simHe[i] = schreiner(simHe[i], piHe, 1, paramSet.heHalfTimes[heIdx]);
+          }
         }
         stopTime = minute + 1;
       }
 
       if (stopTime > 0) {
-        decoStops.push({ depth: currentStop, time: stopTime });
+        decoStops.push({ depth: currentStop, time: stopTime, gas: `${Math.round(gas.fO2*100)}/${Math.round((gas.fHe||0)*100)}` });
       }
 
-      // Update working tissue with actual stop time
-      const pi = inspiredPressure(currentStop, fN2);
-      for (let i = 0; i < paramSet.compartments; i++) {
-        workingTissue[i] = schreiner(workingTissue[i], pi, transitTime + stopTime, paramSet.halfTimes[i]);
+      // Update working tissue
+      const piN2 = inspiredPressure(currentStop, gas.fN2);
+      const piHe = hasHe ? inspiredPressure(currentStop, gas.fHe || 0) : 0;
+      for (let i = 0; i < nc; i++) {
+        wN2[i] = schreiner(wN2[i], piN2, stopTime, paramSet.halfTimes[i]);
+        if (hasHe) {
+          const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+          wHe[i] = schreiner(wHe[i], piHe, stopTime, paramSet.heHalfTimes[heIdx]);
+        }
       }
 
       currentStop -= 3;
@@ -262,95 +256,36 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, d
   return {
     decoStops,
     firstStopDepth,
-    tissueLoading: [...tissueLoading],
+    tissueLoading: [...n2Loading],
+    heLoading: hasHe ? [...heLoading] : null,
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
     variant: paramSet.name,
   };
 }
 
-// Exported convenience functions for each variant
-export function calculateZHL16A(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9) {
-  return calculateBuhlmann(phases, fO2, gfLow, gfHigh, descentRate, 'zhl16a');
-}
+// Convenience wrappers — now accept fHe and gasSwitches
+export function calculateZHL16A(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl16a', fHe, gas); }
+export function calculateZHL16B(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl16b', fHe, gas); }
+export function calculateZHL16C(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl16c', fHe, gas); }
+export function calculateZHL12(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl12', fHe, gas); }
+export function calculateZHL6(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl6', fHe, gas); }
+export function calculateZHL8ADT(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl8adt', fHe, gas); }
 
-export function calculateZHL16B(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9) {
-  return calculateBuhlmann(phases, fO2, gfLow, gfHigh, descentRate, 'zhl16b');
-}
-
-export function calculateZHL16C(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9) {
-  return calculateBuhlmann(phases, fO2, gfLow, gfHigh, descentRate, 'zhl16c');
-}
-
-export function calculateZHL12(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9) {
-  return calculateBuhlmann(phases, fO2, gfLow, gfHigh, descentRate, 'zhl12');
-}
-
-export function calculateZHL6(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9) {
-  return calculateBuhlmann(phases, fO2, gfLow, gfHigh, descentRate, 'zhl6');
-}
-
-export function calculateZHL8ADT(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, descentRate = 9) {
-  return calculateBuhlmann(phases, fO2, gfLow, gfHigh, descentRate, 'zhl8adt');
-}
-
-/**
- * Get algorithm display info.
- */
 export const ALGORITHMS = {
-  none: {
-    name: 'No Algorithm',
-    description: 'Direct ascent at descent rate, no deco calculation',
-  },
-  zhl16a: {
-    name: 'ZH-L 16A',
-    description: 'Original experimental (1986). Theoretical a-values derived from half-times.',
-  },
-  zhl16b: {
-    name: 'ZH-L 16B',
-    description: 'For printed tables. Reduced conservatism in compartments 6,7,8.',
-  },
-  zhl16c: {
-    name: 'ZH-L 16C',
-    description: 'For dive computers. Most widely used. More conservative than 16A/B.',
-  },
-  zhl12: {
-    name: 'ZH-L 12',
-    description: 'Original 1983 version. 16 compartments but 12 unique parameter pairs.',
-  },
-  zhl6: {
-    name: 'ZH-L 6',
-    description: 'Simplified 6-compartment model for early dive computers.',
-  },
-  zhl8adt: {
-    name: 'ZH-L 8 ADT',
-    description: '8-compartment adaptive model with variable half-times.',
-  },
-  vpm: {
-    name: 'VPM-B',
-    description: 'Varying Permeability Model with bubble mechanics. Produces deeper first stops than Bühlmann.',
-  },
-  rgbm: {
-    name: 'RGBM',
-    description: 'Reduced Gradient Bubble Model. Dual-phase algorithm with explicit bubble tracking.',
-  },
-  haldane: {
-    name: 'Haldane (1908)',
-    description: 'Original model. 5 compartments, 2:1 supersaturation ratio. The foundation of all modern algorithms.',
-  },
-  workman: {
-    name: 'Workman (1965)',
-    description: 'US Navy M-value approach. 9 compartments with linear pressure limits. Predecessor to Bühlmann.',
-  },
-  thalmann: {
-    name: 'Thalmann VVAL-18',
-    description: 'US Navy model with asymmetric gas kinetics. Different half-times for on-gassing vs off-gassing.',
-  },
-  dciem: {
-    name: 'DCIEM',
-    description: 'Canadian serial compartment model. 4 compartments in series (not parallel). Very conservative.',
-  },
+  none: { name: 'No Algorithm', description: 'Direct ascent, no deco calculation' },
+  zhl16a: { name: 'ZH-L 16A', description: 'Original experimental (1986). Theoretical a-values.' },
+  zhl16b: { name: 'ZH-L 16B', description: 'For printed tables. Reduced conservatism in compartments 6-8.' },
+  zhl16c: { name: 'ZH-L 16C', description: 'For dive computers. Most widely used. Trimix + multi-gas support.' },
+  zhl12: { name: 'ZH-L 12', description: 'Original 1983 version. 12 unique parameter pairs.' },
+  zhl6: { name: 'ZH-L 6', description: 'Simplified 6-compartment model.' },
+  zhl8adt: { name: 'ZH-L 8 ADT', description: '8-compartment adaptive model.' },
+  vpm: { name: 'VPM-B', description: 'Varying Permeability Model with bubble mechanics. Deeper first stops.' },
+  rgbm: { name: 'RGBM', description: 'Reduced Gradient Bubble Model. Dual-phase with bubble tracking.' },
+  haldane: { name: 'Haldane (1908)', description: '5 compartments, 2:1 ratio. Foundation of modern deco theory.' },
+  workman: { name: 'Workman (1965)', description: 'US Navy M-values. 9 compartments. Predecessor to Bühlmann.' },
+  thalmann: { name: 'Thalmann VVAL-18', description: 'US Navy. Asymmetric gas kinetics (different on/off-gassing).' },
+  dciem: { name: 'DCIEM', description: 'Canadian serial compartments. Very conservative.' },
 };
 
-// Legacy export for backward compatibility  
 export { calculateZHL16C as default };

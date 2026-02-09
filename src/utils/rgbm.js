@@ -94,8 +94,8 @@ function calcBubbleFactors(maxDepth, totalBottomTime) {
 /**
  * Run RGBM decompression calculation.
  */
-export function calculateRGBM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9) {
-  const fN2 = 1.0 - fO2;
+export function calculateRGBM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9, fHe = 0, gasSwitches = []) {
+  const fN2 = 1.0 - fO2 - (fHe || 0);
   const maxDepth = Math.max(...phases.map(p => p.depth), 0);
   const totalBottomTime = phases.reduce((sum, p) => sum + p.duration, 0);
 

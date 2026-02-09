@@ -1,6 +1,6 @@
 import { getMaxDepth } from '../utils/diveProfile';
 
-export default function DiveSummary({ stops, totalTime, decoInfo, color = '#4fc3f7', compareWith = null }) {
+export default function DiveSummary({ stops, totalTime, decoInfo, color = '#4fc3f7', compareWith = null, modViolation = false, mod = null }) {
   if (!stops || stops.length === 0) return null;
 
   const maxDepth = getMaxDepth(stops);
@@ -35,6 +35,20 @@ export default function DiveSummary({ stops, totalTime, decoInfo, color = '#4fc3
           <div className="summary-item no-deco">
             <span className="summary-label">Status</span>
             <span className="summary-value">No Deco</span>
+          </div>
+        )}
+        {mod !== null && (
+          <div className={`summary-item ${modViolation ? 'mod-violation' : ''}`}>
+            <span className="summary-label">MOD</span>
+            <span className="summary-value" style={{ color: modViolation ? '#ff4444' : color }}>
+              {mod} m
+            </span>
+          </div>
+        )}
+        {modViolation && (
+          <div className="summary-item mod-violation">
+            <span className="summary-label">⚠️ Warning</span>
+            <span className="summary-value">ppO₂ exceeded!</span>
           </div>
         )}
       </div>

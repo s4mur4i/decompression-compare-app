@@ -494,6 +494,70 @@ input.invalid {
   color: #ff8a65;
 }
 
+/* Settings divider & subtitle */
+.settings-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 12px 0;
+}
+
+.settings-subtitle {
+  font-size: 0.8rem;
+  color: #78909c;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin: 0 0 8px 0;
+}
+
+/* Gas mix label */
+.gas-mix-label {
+  font-size: 0.75rem;
+  color: #4fc3f7;
+  padding: 6px 8px;
+  background: rgba(79, 195, 247, 0.08);
+  border-radius: 6px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Deco gas rows */
+.deco-gas-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.deco-gas-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #b0bec5;
+  min-width: 80px;
+  cursor: pointer;
+}
+
+.deco-gas-toggle input[type="checkbox"] {
+  accent-color: #4fc3f7;
+}
+
+.deco-gas-mod {
+  font-size: 0.75rem;
+  color: #78909c;
+  white-space: nowrap;
+}
+
+/* MOD violation */
+.summary-item.mod-violation {
+  background: rgba(255, 68, 68, 0.15);
+  border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.summary-item.mod-violation .summary-value {
+  color: #ff4444;
+}
+
 /* Number input arrows */
 input[type="number"]::-webkit-inner-spin-button {
   opacity: 0.5;

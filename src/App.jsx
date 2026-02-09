@@ -16,40 +16,64 @@ import { calculateDCIEM } from './utils/dciem';
 import './App.css';
 
 function App() {
-  // Shared dive parameters
   const [stops, setStops] = useState([]);
-  
-  // Mode toggle
   const [compareMode, setCompareMode] = useState(false);
   
-  // Algorithm A (left side or single mode)
+  // Algorithm A
   const [algorithmA, setAlgorithmA] = useState('none');
   const [fO2A, setFO2A] = useState(0.21);
+  const [fHeA, setFHeA] = useState(0);
   const [gfLowA, setGfLowA] = useState(50);
   const [gfHighA, setGfHighA] = useState(70);
   const [descentRateA, setDescentRateA] = useState(18);
   const [ascentRateA, setAscentRateA] = useState(9);
+  const [ppO2MaxA, setPpO2MaxA] = useState(1.6);
+  const [ppO2DecoA, setPpO2DecoA] = useState(1.4);
+  const [decoGas1A, setDecoGas1A] = useState(null);
+  const [decoGas2A, setDecoGas2A] = useState(null);
   
-  // Algorithm B (right side, compare mode only)
+  // Algorithm B
   const [algorithmB, setAlgorithmB] = useState('zhl16c');
   const [fO2B, setFO2B] = useState(0.21);
+  const [fHeB, setFHeB] = useState(0);
   const [gfLowB, setGfLowB] = useState(50);
   const [gfHighB, setGfHighB] = useState(70);
   const [descentRateB, setDescentRateB] = useState(18);
   const [ascentRateB, setAscentRateB] = useState(9);
+  const [ppO2MaxB, setPpO2MaxB] = useState(1.6);
+  const [ppO2DecoB, setPpO2DecoB] = useState(1.4);
+  const [decoGas1B, setDecoGas1B] = useState(null);
+  const [decoGas2B, setDecoGas2B] = useState(null);
   
   const [initialized, setInitialized] = useState(false);
 
-  const runAlgorithm = (algorithm, fO2, gfLow, gfHigh, ascentRate, phases) => {
-    if (algorithm === 'zhl16a') return calculateZHL16A(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'zhl16b') return calculateZHL16B(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'zhl16c') return calculateZHL16C(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'zhl12') return calculateZHL12(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'zhl6') return calculateZHL6(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'zhl8adt') return calculateZHL8ADT(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'buhlmann') return calculateZHL16C(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'vpm') return calculateVPM(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'rgbm') return calculateRGBM(phases, fO2, gfLow, gfHigh, ascentRate);
+  // MOD calculation
+  const calcMOD = (fO2, ppO2) => fO2 > 0 ? Math.floor(10 * (ppO2 / fO2 - 1)) : 0;
+
+  const runAlgorithm = (algorithm, fO2, fHe, gfLow, gfHigh, ascentRate, phases, decoGas1, decoGas2, ppO2Deco) => {
+    // Build gas switches list (sorted deepest first)
+    const gasSwitches = [];
+    if (decoGas1?.fO2) {
+      const switchDepth = calcMOD(decoGas1.fO2, ppO2Deco);
+      gasSwitches.push({ depth: switchDepth, fO2: decoGas1.fO2, fHe: 0 });
+    }
+    if (decoGas2?.fO2) {
+      const switchDepth = calcMOD(decoGas2.fO2, ppO2Deco);
+      gasSwitches.push({ depth: switchDepth, fO2: decoGas2.fO2, fHe: 0 });
+    }
+    gasSwitches.sort((a, b) => b.depth - a.depth);
+
+    const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, gasSwitches };
+
+    if (algorithm === 'zhl16a') return calculateZHL16A(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'zhl16b') return calculateZHL16B(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'zhl16c') return calculateZHL16C(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'zhl12') return calculateZHL12(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'zhl6') return calculateZHL6(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'zhl8adt') return calculateZHL8ADT(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'buhlmann') return calculateZHL16C(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'vpm') return calculateVPM(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
+    if (algorithm === 'rgbm') return calculateRGBM(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
     if (algorithm === 'haldane') return calculateHaldane(phases, fO2, gfLow, gfHigh, ascentRate);
     if (algorithm === 'workman') return calculateWorkman(phases, fO2, gfLow, gfHigh, ascentRate);
     if (algorithm === 'thalmann') return calculateThalmann(phases, fO2, gfLow, gfHigh, ascentRate);
@@ -57,10 +81,10 @@ function App() {
     return null;
   };
 
-  const calculateFull = (algorithm, fO2, gfLow, gfHigh, descentRate, ascentRate) => {
+  const calculateFull = (algorithm, fO2, fHe, gfLow, gfHigh, descentRate, ascentRate, decoGas1, decoGas2, ppO2Deco) => {
     if (stops.length === 0) return null;
     const profile = calculateDiveProfile(stops, descentRate, ascentRate);
-    const decoInfo = runAlgorithm(algorithm, fO2, gfLow, gfHigh, ascentRate, profile.phases);
+    const decoInfo = runAlgorithm(algorithm, fO2, fHe, gfLow, gfHigh, ascentRate, profile.phases, decoGas1, decoGas2, ppO2Deco);
     if (decoInfo) {
       const fullProfile = addAscentPhases(profile, decoInfo.decoStops, ascentRate);
       return { ...fullProfile, decoInfo };
@@ -70,114 +94,144 @@ function App() {
     }
   };
 
-  // Load from URL on mount
+  // URL loading
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const plan = params.get('plan');
-    const mode = params.get('mode');
+    const p = new URLSearchParams(window.location.search);
+    if (p.get('plan')) setStops(parsePlan(p.get('plan')));
     
-    if (plan) setStops(parsePlan(plan));
-    
-    if (mode === 'compare') {
+    if (p.get('mode') === 'compare') {
       setCompareMode(true);
-      const algoA = params.get('algoA');
-      const algoB = params.get('algoB');
-      if (algoA) setAlgorithmA(algoA);
-      if (algoB) setAlgorithmB(algoB);
-      if (params.get('o2A')) setFO2A(Math.min(1, Math.max(0.16, Number(params.get('o2A')) / 100)));
-      if (params.get('o2B')) setFO2B(Math.min(1, Math.max(0.16, Number(params.get('o2B')) / 100)));
-      if (params.get('gflA')) setGfLowA(Number(params.get('gflA')) || 50);
-      if (params.get('gfhA')) setGfHighA(Number(params.get('gfhA')) || 70);
-      if (params.get('gflB')) setGfLowB(Number(params.get('gflB')) || 50);
-      if (params.get('gfhB')) setGfHighB(Number(params.get('gfhB')) || 70);
-      if (params.get('descentA')) setDescentRateA(Math.max(1, Number(params.get('descentA')) || 18));
-      if (params.get('ascentA')) setAscentRateA(Math.max(1, Number(params.get('ascentA')) || 9));
-      if (params.get('descentB')) setDescentRateB(Math.max(1, Number(params.get('descentB')) || 18));
-      if (params.get('ascentB')) setAscentRateB(Math.max(1, Number(params.get('ascentB')) || 9));
+      if (p.get('algoA')) setAlgorithmA(p.get('algoA'));
+      if (p.get('algoB')) setAlgorithmB(p.get('algoB'));
+      if (p.get('o2A')) setFO2A(Number(p.get('o2A')) / 100);
+      if (p.get('o2B')) setFO2B(Number(p.get('o2B')) / 100);
+      if (p.get('heA')) setFHeA(Number(p.get('heA')) / 100);
+      if (p.get('heB')) setFHeB(Number(p.get('heB')) / 100);
+      if (p.get('gflA')) setGfLowA(Number(p.get('gflA')));
+      if (p.get('gfhA')) setGfHighA(Number(p.get('gfhA')));
+      if (p.get('gflB')) setGfLowB(Number(p.get('gflB')));
+      if (p.get('gfhB')) setGfHighB(Number(p.get('gfhB')));
+      if (p.get('descentA')) setDescentRateA(Number(p.get('descentA')));
+      if (p.get('ascentA')) setAscentRateA(Number(p.get('ascentA')));
+      if (p.get('descentB')) setDescentRateB(Number(p.get('descentB')));
+      if (p.get('ascentB')) setAscentRateB(Number(p.get('ascentB')));
     } else {
-      setCompareMode(false);
-      const algo = params.get('algo');
-      if (algo) setAlgorithmA(algo);
-      if (params.get('o2')) setFO2A(Math.min(1, Math.max(0.16, Number(params.get('o2')) / 100)));
-      if (params.get('gfl')) setGfLowA(Number(params.get('gfl')) || 50);
-      if (params.get('gfh')) setGfHighA(Number(params.get('gfh')) || 70);
-      if (params.get('descent')) setDescentRateA(Math.max(1, Number(params.get('descent')) || 18));
-      if (params.get('ascent')) setAscentRateA(Math.max(1, Number(params.get('ascent')) || 9));
+      if (p.get('algo')) setAlgorithmA(p.get('algo'));
+      if (p.get('o2')) setFO2A(Number(p.get('o2')) / 100);
+      if (p.get('he')) setFHeA(Number(p.get('he')) / 100);
+      if (p.get('gfl')) setGfLowA(Number(p.get('gfl')));
+      if (p.get('gfh')) setGfHighA(Number(p.get('gfh')));
+      if (p.get('descent')) setDescentRateA(Number(p.get('descent')));
+      if (p.get('ascent')) setAscentRateA(Number(p.get('ascent')));
     }
-
     setInitialized(true);
   }, []);
 
-  // Update URL when state changes
+  // URL sync
   useEffect(() => {
     if (!initialized) return;
-    const params = new URLSearchParams();
-    if (stops.length > 0) params.set('plan', stops.map(s => `${s.depth}:${s.time}`).join(','));
+    const p = new URLSearchParams();
+    if (stops.length > 0) p.set('plan', stops.map(s => `${s.depth}:${s.time}`).join(','));
     
     if (compareMode) {
-      params.set('mode', 'compare');
-      if (algorithmA !== 'none') params.set('algoA', algorithmA);
-      if (algorithmB !== 'none') params.set('algoB', algorithmB);
-      if (fO2A !== 0.21) params.set('o2A', Math.round(fO2A * 100));
-      if (fO2B !== 0.21) params.set('o2B', Math.round(fO2B * 100));
-      if (gfLowA !== 50) params.set('gflA', gfLowA);
-      if (gfHighA !== 70) params.set('gfhA', gfHighA);
-      if (gfLowB !== 50) params.set('gflB', gfLowB);
-      if (gfHighB !== 70) params.set('gfhB', gfHighB);
-      if (descentRateA !== 18) params.set('descentA', descentRateA);
-      if (ascentRateA !== 9) params.set('ascentA', ascentRateA);
-      if (descentRateB !== 18) params.set('descentB', descentRateB);
-      if (ascentRateB !== 9) params.set('ascentB', ascentRateB);
+      p.set('mode', 'compare');
+      if (algorithmA !== 'none') p.set('algoA', algorithmA);
+      if (algorithmB !== 'none') p.set('algoB', algorithmB);
+      if (fO2A !== 0.21) p.set('o2A', Math.round(fO2A * 100));
+      if (fO2B !== 0.21) p.set('o2B', Math.round(fO2B * 100));
+      if (fHeA > 0) p.set('heA', Math.round(fHeA * 100));
+      if (fHeB > 0) p.set('heB', Math.round(fHeB * 100));
+      if (gfLowA !== 50) p.set('gflA', gfLowA);
+      if (gfHighA !== 70) p.set('gfhA', gfHighA);
+      if (gfLowB !== 50) p.set('gflB', gfLowB);
+      if (gfHighB !== 70) p.set('gfhB', gfHighB);
+      if (descentRateA !== 18) p.set('descentA', descentRateA);
+      if (ascentRateA !== 9) p.set('ascentA', ascentRateA);
+      if (descentRateB !== 18) p.set('descentB', descentRateB);
+      if (ascentRateB !== 9) p.set('ascentB', ascentRateB);
     } else {
-      if (algorithmA !== 'none') params.set('algo', algorithmA);
-      if (fO2A !== 0.21) params.set('o2', Math.round(fO2A * 100));
-      if (gfLowA !== 50) params.set('gfl', gfLowA);
-      if (gfHighA !== 70) params.set('gfh', gfHighA);
-      if (descentRateA !== 18) params.set('descent', descentRateA);
-      if (ascentRateA !== 9) params.set('ascent', ascentRateA);
+      if (algorithmA !== 'none') p.set('algo', algorithmA);
+      if (fO2A !== 0.21) p.set('o2', Math.round(fO2A * 100));
+      if (fHeA > 0) p.set('he', Math.round(fHeA * 100));
+      if (gfLowA !== 50) p.set('gfl', gfLowA);
+      if (gfHighA !== 70) p.set('gfh', gfHighA);
+      if (descentRateA !== 18) p.set('descent', descentRateA);
+      if (ascentRateA !== 9) p.set('ascent', ascentRateA);
     }
-    
-    const newUrl = `${window.location.pathname}?${params.toString()}`;
-    window.history.replaceState(null, '', newUrl);
-  }, [stops, compareMode, algorithmA, algorithmB, fO2A, fO2B, gfLowA, gfHighA, gfLowB, gfHighB, descentRateA, ascentRateA, descentRateB, ascentRateB, initialized]);
+    window.history.replaceState(null, '', `${window.location.pathname}?${p.toString()}`);
+  }, [stops, compareMode, algorithmA, algorithmB, fO2A, fO2B, fHeA, fHeB, gfLowA, gfHighA, gfLowB, gfHighB, descentRateA, ascentRateA, descentRateB, ascentRateB, initialized]);
 
-  // Calculate results
+  // Results
   const resultA = useMemo(() => {
-    return calculateFull(algorithmA, fO2A, gfLowA, gfHighA, descentRateA, ascentRateA);
-  }, [stops, algorithmA, fO2A, gfLowA, gfHighA, descentRateA, ascentRateA]);
+    return calculateFull(algorithmA, fO2A, fHeA, gfLowA, gfHighA, descentRateA, ascentRateA, decoGas1A, decoGas2A, ppO2DecoA);
+  }, [stops, algorithmA, fO2A, fHeA, gfLowA, gfHighA, descentRateA, ascentRateA, decoGas1A, decoGas2A, ppO2DecoA]);
 
   const resultB = useMemo(() => {
     if (!compareMode) return null;
-    return calculateFull(algorithmB, fO2B, gfLowB, gfHighB, descentRateB, ascentRateB);
-  }, [stops, compareMode, algorithmB, fO2B, gfLowB, gfHighB, descentRateB, ascentRateB]);
+    return calculateFull(algorithmB, fO2B, fHeB, gfLowB, gfHighB, descentRateB, ascentRateB, decoGas1B, decoGas2B, ppO2DecoB);
+  }, [stops, compareMode, algorithmB, fO2B, fHeB, gfLowB, gfHighB, descentRateB, ascentRateB, decoGas1B, decoGas2B, ppO2DecoB]);
 
   const timeDifference = useMemo(() => {
     if (!compareMode || !resultA || !resultB) return null;
-    const diffMinutes = resultB.totalTime - resultA.totalTime;
-    if (diffMinutes === 0) return null;
-    const sign = diffMinutes > 0 ? '+' : '';
-    return `${sign}${diffMinutes} min`;
+    const diff = resultB.totalTime - resultA.totalTime;
+    if (diff === 0) return null;
+    return `${diff > 0 ? '+' : ''}${diff} min`;
   }, [compareMode, resultA, resultB]);
+
+  // MOD lines for chart
+  const modLines = useMemo(() => {
+    const lines = [];
+    const maxDepth = Math.max(...stops.map(s => s.depth), 0);
+    
+    // Algorithm A MOD
+    if (algorithmA !== 'none') {
+      const modA = calcMOD(fO2A, ppO2MaxA);
+      lines.push({ depth: modA, color: '#ff4444', dash: [6, 4], label: `MOD ${modA}m (ppO₂ ${ppO2MaxA})` });
+      
+      // Deco gas switch lines
+      if (decoGas1A?.fO2) {
+        const d = calcMOD(decoGas1A.fO2, ppO2DecoA);
+        lines.push({ depth: d, color: '#888888', dash: [4, 4], label: `S1 switch ${d}m` });
+      }
+      if (decoGas2A?.fO2) {
+        const d = calcMOD(decoGas2A.fO2, ppO2DecoA);
+        lines.push({ depth: d, color: '#666666', dash: [4, 4], label: `S2 switch ${d}m` });
+      }
+    }
+    
+    // Algorithm B MOD (compare mode, only if different)
+    if (compareMode && algorithmB !== 'none') {
+      const modB = calcMOD(fO2B, ppO2MaxB);
+      const modA = algorithmA !== 'none' ? calcMOD(fO2A, ppO2MaxA) : -1;
+      if (modB !== modA) {
+        lines.push({ depth: modB, color: '#ff8800', dash: [6, 4], label: `MOD ${modB}m (B)` });
+      }
+    }
+    
+    return lines;
+  }, [algorithmA, algorithmB, fO2A, fO2B, ppO2MaxA, ppO2MaxB, ppO2DecoA, ppO2DecoB, decoGas1A, decoGas2A, compareMode, stops]);
+
+  // MOD violation check
+  const modViolationA = useMemo(() => {
+    if (algorithmA === 'none' || stops.length === 0) return false;
+    const maxDepth = Math.max(...stops.map(s => s.depth));
+    return maxDepth > calcMOD(fO2A, ppO2MaxA);
+  }, [algorithmA, fO2A, ppO2MaxA, stops]);
+
+  const modViolationB = useMemo(() => {
+    if (!compareMode || algorithmB === 'none' || stops.length === 0) return false;
+    const maxDepth = Math.max(...stops.map(s => s.depth));
+    return maxDepth > calcMOD(fO2B, ppO2MaxB);
+  }, [compareMode, algorithmB, fO2B, ppO2MaxB, stops]);
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>🤿 Decompression Compare</h1>
         <p className="subtitle">Dive profile planner & algorithm comparison tool</p>
-        
         <div className="mode-toggle">
-          <button 
-            className={`mode-btn ${!compareMode ? 'active' : ''}`}
-            onClick={() => setCompareMode(false)}
-          >
-            Single
-          </button>
-          <button 
-            className={`mode-btn ${compareMode ? 'active' : ''}`}
-            onClick={() => setCompareMode(true)}
-          >
-            Compare
-          </button>
+          <button className={`mode-btn ${!compareMode ? 'active' : ''}`} onClick={() => setCompareMode(false)}>Single</button>
+          <button className={`mode-btn ${compareMode ? 'active' : ''}`} onClick={() => setCompareMode(true)}>Compare</button>
         </div>
       </header>
 
@@ -194,10 +248,15 @@ function App() {
             <DiveSettings
               algorithm={algorithmA} onAlgorithmChange={setAlgorithmA}
               fO2={fO2A} onFO2Change={setFO2A}
+              fHe={fHeA} onFHeChange={setFHeA}
               gfLow={gfLowA} onGfLowChange={setGfLowA}
               gfHigh={gfHighA} onGfHighChange={setGfHighA}
               descentRate={descentRateA} onDescentRateChange={setDescentRateA}
               ascentRate={ascentRateA} onAscentRateChange={setAscentRateA}
+              ppO2Max={ppO2MaxA} onPpO2MaxChange={setPpO2MaxA}
+              ppO2Deco={ppO2DecoA} onPpO2DecoChange={setPpO2DecoA}
+              decoGas1={decoGas1A} onDecoGas1Change={setDecoGas1A}
+              decoGas2={decoGas2A} onDecoGas2Change={setDecoGas2A}
               color="#4fc3f7"
             />
           </div>
@@ -207,10 +266,15 @@ function App() {
               <DiveSettings
                 algorithm={algorithmB} onAlgorithmChange={setAlgorithmB}
                 fO2={fO2B} onFO2Change={setFO2B}
+                fHe={fHeB} onFHeChange={setFHeB}
                 gfLow={gfLowB} onGfLowChange={setGfLowB}
                 gfHigh={gfHighB} onGfHighChange={setGfHighB}
                 descentRate={descentRateB} onDescentRateChange={setDescentRateB}
                 ascentRate={ascentRateB} onAscentRateChange={setAscentRateB}
+                ppO2Max={ppO2MaxB} onPpO2MaxChange={setPpO2MaxB}
+                ppO2Deco={ppO2DecoB} onPpO2DecoChange={setPpO2DecoB}
+                decoGas1={decoGas1B} onDecoGas1Change={setDecoGas1B}
+                decoGas2={decoGas2B} onDecoGas2Change={setDecoGas2B}
                 color="#ff9800"
               />
             </div>
@@ -225,7 +289,8 @@ function App() {
               { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
             ] : [
               { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
-            ]} 
+            ]}
+            modLines={modLines}
           />
         </div>
 
@@ -236,6 +301,8 @@ function App() {
               stops={stops} totalTime={resultA?.totalTime || 0}
               decoInfo={resultA?.decoInfo} color="#4fc3f7"
               compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
+              modViolation={modViolationA}
+              mod={algorithmA !== 'none' ? calcMOD(fO2A, ppO2MaxA) : null}
             />
           </div>
           {compareMode && (
@@ -244,6 +311,8 @@ function App() {
                 stops={stops} totalTime={resultB?.totalTime || 0}
                 decoInfo={resultB?.decoInfo} color="#ff9800"
                 compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
+                modViolation={modViolationB}
+                mod={algorithmB !== 'none' ? calcMOD(fO2B, ppO2MaxB) : null}
               />
             </div>
           )}
@@ -261,7 +330,7 @@ function App() {
           )}
         </div>
 
-        {/* 6. Share Link */}
+        {/* 6. Share */}
         <ShareLink />
       </main>
 
@@ -269,9 +338,7 @@ function App() {
         <div className="footer-content">
           <span>Made by <a href="https://github.com/s4mur4i" target="_blank" rel="noopener noreferrer">S4mur4i</a></span>
           <span>•</span>
-          <a href="https://github.com/s4mur4i/decompression-compare-app" target="_blank" rel="noopener noreferrer">
-            GitHub
-          </a>
+          <a href="https://github.com/s4mur4i/decompression-compare-app" target="_blank" rel="noopener noreferrer">GitHub</a>
         </div>
       </footer>
     </div>

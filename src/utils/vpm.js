@@ -127,8 +127,8 @@ function calcCeiling(tissueLoading, gradients, gfLow) {
 /**
  * Run VPM-B decompression calculation.
  */
-export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9) {
-  const fN2 = 1.0 - fO2;
+export function calculateVPM(phases, fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9, fHe = 0, gasSwitches = []) {
+  const fN2 = 1.0 - fO2 - (fHe || 0);
   const maxDepth = Math.max(...phases.map(p => p.depth), 0);
   const maxAmbientPressure = depthToPressure(maxDepth);
 

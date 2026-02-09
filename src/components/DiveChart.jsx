@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -9,6 +9,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import { Line } from 'react-chartjs-2';
 
 ChartJS.register(
@@ -18,17 +19,17 @@ ChartJS.register(
   LineElement,
   Filler,
   Tooltip,
-  Legend
+  Legend,
+  annotationPlugin
 );
 
-export default function DiveChart({ profiles }) {
+export default function DiveChart({ profiles, modLines = [] }) {
   const chartRef = useRef(null);
 
   if (!profiles || profiles.length === 0 || !profiles[0]?.points || profiles[0].points.length < 2) {
     return <div className="chart-placeholder">Add dive stops to see the profile</div>;
   }
 
-  // Find max depth and time across all profiles
   let maxDepth = 0;
   let maxTime = 0;
   
@@ -41,13 +42,16 @@ export default function DiveChart({ profiles }) {
     }
   });
 
-  // Generate time axis from 0 to maxTime
+  // Include MOD lines in max depth calc for chart range
+  modLines.forEach(line => {
+    if (line.depth > maxDepth) maxDepth = line.depth;
+  });
+
   const timePoints = [];
   for (let t = 0; t <= maxTime; t++) {
     timePoints.push(t);
   }
 
-  // Create datasets for each profile
   const datasets = [];
   
   profiles.forEach((profile, index) => {
@@ -56,28 +60,20 @@ export default function DiveChart({ profiles }) {
     const color = profile.color || '#4fc3f7';
     const label = profile.label || `Profile ${index + 1}`;
     
-    // Interpolate depth values for consistent time axis
     const depthValues = timePoints.map(t => {
-      // Find the depth at time t
       if (t === 0) return 0;
-      
       for (let i = 0; i < profile.points.length - 1; i++) {
         const p1 = profile.points[i];
         const p2 = profile.points[i + 1];
-        
         if (t >= p1.time && t <= p2.time) {
-          // Linear interpolation between points
           if (p1.time === p2.time) return p1.depth;
           const ratio = (t - p1.time) / (p2.time - p1.time);
           return p1.depth + (p2.depth - p1.depth) * ratio;
         }
       }
-      
-      // Beyond last point, return last depth
       return profile.points[profile.points.length - 1].depth;
     });
 
-    // Only fill under the deepest profile to avoid overlap confusion
     const isDeepest = index === profiles.findIndex(p => {
       const pMaxDepth = Math.max(...(p.points?.map(pt => pt.depth) || [0]));
       return pMaxDepth === maxDepth;
@@ -106,10 +102,31 @@ export default function DiveChart({ profiles }) {
     });
   });
 
-  const data = {
-    labels: timePoints,
-    datasets,
-  };
+  // Build annotation lines for MOD/ppO₂
+  const annotations = {};
+  modLines.forEach((line, i) => {
+    annotations[`mod_${i}`] = {
+      type: 'line',
+      yMin: line.depth,
+      yMax: line.depth,
+      borderColor: line.color || '#ff4444',
+      borderWidth: 2,
+      borderDash: line.dash || [6, 4],
+      label: {
+        display: true,
+        content: line.label || `MOD ${line.depth}m`,
+        position: 'start',
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        color: line.color || '#ff4444',
+        font: { size: 11, weight: 'bold' },
+        padding: 4,
+      },
+    };
+  });
+
+  const data = { labels: timePoints, datasets };
+
+  const yMax = Math.ceil(maxDepth / 5) * 5 + 5;
 
   const options = {
     responsive: true,
@@ -118,10 +135,7 @@ export default function DiveChart({ profiles }) {
       legend: { 
         display: profiles.length > 1,
         position: 'top',
-        labels: {
-          usePointStyle: true,
-          pointStyle: 'line',
-        }
+        labels: { usePointStyle: true, pointStyle: 'line' },
       },
       tooltip: {
         mode: 'index',
@@ -131,24 +145,22 @@ export default function DiveChart({ profiles }) {
           label: (item) => `${item.dataset.label}: ${item.raw.toFixed(1)} m`,
         },
       },
+      annotation: {
+        annotations,
+      },
     },
     scales: {
       y: {
         reverse: true,
         min: 0,
-        max: Math.ceil(maxDepth / 5) * 5 + 5,
+        max: yMax,
         title: {
           display: true,
           text: 'Depth (metres)',
           font: { size: 14, weight: 'bold' },
         },
-        ticks: {
-          stepSize: 5,
-          callback: (val) => `${val}`,
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.15)',
-        },
+        ticks: { stepSize: 5, callback: (val) => `${val}` },
+        grid: { color: 'rgba(255, 255, 255, 0.15)' },
       },
       x: {
         type: 'linear',
@@ -159,18 +171,11 @@ export default function DiveChart({ profiles }) {
           text: 'Time (minutes)',
           font: { size: 14, weight: 'bold' },
         },
-        ticks: {
-          stepSize: maxTime > 60 ? 10 : 5,
-        },
-        grid: {
-          color: 'rgba(255, 255, 255, 0.15)',
-        },
+        ticks: { stepSize: maxTime > 60 ? 10 : 5 },
+        grid: { color: 'rgba(255, 255, 255, 0.15)' },
       },
     },
-    interaction: {
-      mode: 'index',
-      intersect: false,
-    },
+    interaction: { mode: 'index', intersect: false },
   };
 
   return (

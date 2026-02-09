@@ -184,6 +184,7 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
   const decoStops = [];
   const wN2 = [...n2Loading];
   const wHe = hasHe ? [...heLoading] : null;
+  let prevGasLabel = `${Math.round(fO2*100)}/${Math.round((fHe||0)*100)}`;
 
   if (firstStopDepth > 0) {
     let currentStop = firstStopDepth;
@@ -234,9 +235,14 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
         stopTime = minute + 1;
       }
 
+      const gasLabel = `${Math.round(gas.fO2*100)}/${Math.round((gas.fHe||0)*100)}`;
       if (stopTime > 0) {
-        decoStops.push({ depth: currentStop, time: stopTime, gas: `${Math.round(gas.fO2*100)}/${Math.round((gas.fHe||0)*100)}` });
+        decoStops.push({ depth: currentStop, time: stopTime, gas: gasLabel });
+      } else if (prevGasLabel && gasLabel !== prevGasLabel) {
+        // Always show gas switch even if 0-time stop
+        decoStops.push({ depth: currentStop, time: 0, gas: gasLabel, gasSwitch: true });
       }
+      prevGasLabel = gasLabel;
 
       // Update working tissue
       const piN2 = inspiredPressure(currentStop, gas.fN2);

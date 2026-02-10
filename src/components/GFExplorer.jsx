@@ -28,13 +28,9 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
   const gfHigh = settings?.gfHigh || 70;
   const isBuhlmann = algorithm.startsWith('zhl');
 
-  if (!isBuhlmann) return null;
-
-  const paramKey = algorithm;
+  const paramKey = isBuhlmann ? algorithm : 'zhl16c';
   const paramSet = PARAM_SETS[paramKey];
-  if (!paramSet) return null;
-
-  const nc = paramSet.compartments;
+  const nc = paramSet?.compartments || 16;
   const depths = [];
   for (let d = 0; d <= 60; d += 1) depths.push(d);
 
@@ -45,6 +41,7 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
   };
 
   const datasets = useMemo(() => {
+    if (!isBuhlmann || !paramSet) return [];
     const ds = [];
 
     // Ambient pressure line (diagonal)
@@ -136,6 +133,8 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
       },
     },
   };
+
+  if (!isBuhlmann || !paramSet) return null;
 
   return (
     <div className="collapsible-section">

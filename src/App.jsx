@@ -67,19 +67,19 @@ function App() {
 
     const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, gasSwitches };
 
-    if (algorithm === 'zhl16a') return calculateZHL16A(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'zhl16b') return calculateZHL16B(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'zhl16c') return calculateZHL16C(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'zhl12') return calculateZHL12(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'zhl6') return calculateZHL6(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'zhl8adt') return calculateZHL8ADT(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'buhlmann') return calculateZHL16C(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'vpm') return calculateVPM(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'rgbm') return calculateRGBM(phases, fO2, gfLow, gfHigh, ascentRate, fHe, gasSwitches);
-    if (algorithm === 'haldane') return calculateHaldane(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'workman') return calculateWorkman(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'thalmann') return calculateThalmann(phases, fO2, gfLow, gfHigh, ascentRate);
-    if (algorithm === 'dciem') return calculateDCIEM(phases, fO2, gfLow, gfHigh, ascentRate);
+    if (algorithm === 'zhl16a') return calculateZHL16A(phases, opts);
+    if (algorithm === 'zhl16b') return calculateZHL16B(phases, opts);
+    if (algorithm === 'zhl16c') return calculateZHL16C(phases, opts);
+    if (algorithm === 'zhl12') return calculateZHL12(phases, opts);
+    if (algorithm === 'zhl6') return calculateZHL6(phases, opts);
+    if (algorithm === 'zhl8adt') return calculateZHL8ADT(phases, opts);
+    if (algorithm === 'buhlmann') return calculateZHL16C(phases, opts);
+    if (algorithm === 'vpm') return calculateVPM(phases, opts);
+    if (algorithm === 'rgbm') return calculateRGBM(phases, opts);
+    if (algorithm === 'haldane') return calculateHaldane(phases, opts);
+    if (algorithm === 'workman') return calculateWorkman(phases, opts);
+    if (algorithm === 'thalmann') return calculateThalmann(phases, opts);
+    if (algorithm === 'dciem') return calculateDCIEM(phases, opts);
     return null;
   };
 

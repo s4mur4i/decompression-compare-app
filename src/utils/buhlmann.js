@@ -136,7 +136,8 @@ function getGasAtDepth(depth, bottomGas, gasSwitches) {
 /**
  * Main Bühlmann calculation with trimix and multi-gas support.
  */
-export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9, variant = 'zhl16c', fHe = 0, gasSwitches = []) {
+export function calculateBuhlmann(phases, options = {}) {
+  const { fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9, variant = 'zhl16c', fHe = 0, gasSwitches = [] } = options;
   const paramSet = PARAM_SETS[variant];
   if (!paramSet) throw new Error(`Unknown variant: ${variant}`);
 
@@ -259,12 +260,12 @@ export function calculateBuhlmann(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, a
 }
 
 // Convenience wrappers — now accept fHe and gasSwitches
-export function calculateZHL16A(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl16a', fHe, gas); }
-export function calculateZHL16B(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl16b', fHe, gas); }
-export function calculateZHL16C(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl16c', fHe, gas); }
-export function calculateZHL12(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl12', fHe, gas); }
-export function calculateZHL6(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl6', fHe, gas); }
-export function calculateZHL8ADT(phases, fO2, gfLow, gfHigh, rate, fHe, gas) { return calculateBuhlmann(phases, fO2, gfLow, gfHigh, rate, 'zhl8adt', fHe, gas); }
+export function calculateZHL16A(phases, options = {}) { return calculateBuhlmann(phases, { ...options, variant: 'zhl16a' }); }
+export function calculateZHL16B(phases, options = {}) { return calculateBuhlmann(phases, { ...options, variant: 'zhl16b' }); }
+export function calculateZHL16C(phases, options = {}) { return calculateBuhlmann(phases, { ...options, variant: 'zhl16c' }); }
+export function calculateZHL12(phases, options = {}) { return calculateBuhlmann(phases, { ...options, variant: 'zhl12' }); }
+export function calculateZHL6(phases, options = {}) { return calculateBuhlmann(phases, { ...options, variant: 'zhl6' }); }
+export function calculateZHL8ADT(phases, options = {}) { return calculateBuhlmann(phases, { ...options, variant: 'zhl8adt' }); }
 
 // Capability flags: trimix (He tracking), multiGas (deco gas switches), gf (gradient factors)
 export const ALGORITHMS = {

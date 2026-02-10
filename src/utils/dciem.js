@@ -122,7 +122,8 @@ function canAscendDCIEM(tissueLoading, newDepth) {
  * @param {number} ascentRate - Ascent rate in m/min
  * @returns {Object} Deco stops and tissue data
  */
-export function calculateDCIEM(phases, fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9) {
+export function calculateDCIEM(phases, options = {}) {
+  const { fO2 = 0.21, ascentRate = 9 } = options;
   const fN2 = 1.0 - fO2;
   
   // Initialize tissue loading at surface equilibrium

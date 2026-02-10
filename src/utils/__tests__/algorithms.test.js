@@ -31,7 +31,7 @@ describe('Algorithm interface compliance', () => {
 
   algos.forEach(([name, fn]) => {
     it(`${name} returns correct shape`, () => {
-      const result = fn(phases, 0.21, 50, 70, 9);
+      const result = fn(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
       expect(result).toHaveProperty('decoStops');
       expect(result).toHaveProperty('firstStopDepth');
       expect(result).toHaveProperty('tissueLoading');
@@ -44,7 +44,7 @@ describe('Algorithm interface compliance', () => {
     });
 
     it(`${name} deco stops have depth and time`, () => {
-      const result = fn(phases, 0.21, 50, 70, 9);
+      const result = fn(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
       result.decoStops.forEach(stop => {
         expect(stop).toHaveProperty('depth');
         expect(stop).toHaveProperty('time');
@@ -64,8 +64,8 @@ describe('Algorithm interface compliance', () => {
 
 describe('Algorithm sanity checks', () => {
   it('deeper dive produces more deco than shallow', () => {
-    const shallow = calculateZHL16C(getPhases(20, 20), 0.21, 50, 70, 9);
-    const deep = calculateZHL16C(getPhases(60, 20), 0.21, 50, 70, 9);
+    const shallow = calculateZHL16C(getPhases(20, 20), { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
+    const deep = calculateZHL16C(getPhases(60, 20), { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
     
     const shallowDeco = shallow.decoStops.reduce((a, s) => a + s.time, 0);
     const deepDeco = deep.decoStops.reduce((a, s) => a + s.time, 0);
@@ -74,8 +74,8 @@ describe('Algorithm sanity checks', () => {
   });
 
   it('longer dive produces more deco than shorter', () => {
-    const short = calculateZHL16C(getPhases(40, 10), 0.21, 50, 70, 9);
-    const long = calculateZHL16C(getPhases(40, 30), 0.21, 50, 70, 9);
+    const short = calculateZHL16C(getPhases(40, 10), { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
+    const long = calculateZHL16C(getPhases(40, 30), { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
     
     const shortDeco = short.decoStops.reduce((a, s) => a + s.time, 0);
     const longDeco = long.decoStops.reduce((a, s) => a + s.time, 0);
@@ -85,8 +85,8 @@ describe('Algorithm sanity checks', () => {
 
   it('higher O2 reduces deco time', () => {
     const phases = getPhases(40, 20);
-    const air = calculateZHL16C(phases, 0.21, 50, 70, 9);
-    const nitrox = calculateZHL16C(phases, 0.32, 50, 70, 9);
+    const air = calculateZHL16C(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
+    const nitrox = calculateZHL16C(phases, { fO2: 0.32, gfLow: 50, gfHigh: 70, ascentRate: 9 });
     
     const airDeco = air.decoStops.reduce((a, s) => a + s.time, 0);
     const nitroxDeco = nitrox.decoStops.reduce((a, s) => a + s.time, 0);
@@ -96,8 +96,8 @@ describe('Algorithm sanity checks', () => {
 
   it('lower GF produces more deco', () => {
     const phases = getPhases(50, 20);
-    const conservative = calculateZHL16C(phases, 0.21, 30, 70, 9);
-    const liberal = calculateZHL16C(phases, 0.21, 70, 85, 9);
+    const conservative = calculateZHL16C(phases, { fO2: 0.21, gfLow: 30, gfHigh: 70, ascentRate: 9 });
+    const liberal = calculateZHL16C(phases, { fO2: 0.21, gfLow: 70, gfHigh: 85, ascentRate: 9 });
     
     const conservDeco = conservative.decoStops.reduce((a, s) => a + s.time, 0);
     const liberalDeco = liberal.decoStops.reduce((a, s) => a + s.time, 0);
@@ -107,16 +107,16 @@ describe('Algorithm sanity checks', () => {
 
   it('VPM-B produces deeper first stop than Bühlmann for deep dive', () => {
     const phases = getPhases(60, 20);
-    const buhl = calculateZHL16C(phases, 0.21, 50, 70, 9);
-    const vpm = calculateVPM(phases, 0.21, 50, 70, 9);
+    const buhl = calculateZHL16C(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
+    const vpm = calculateVPM(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
     
     expect(vpm.firstStopDepth).toBeGreaterThanOrEqual(buhl.firstStopDepth);
   });
 
   it('Haldane is most permissive (least deco) for moderate dive', () => {
     const phases = getPhases(40, 15);
-    const haldane = calculateHaldane(phases, 0.21, 50, 70, 9);
-    const buhl = calculateZHL16C(phases, 0.21, 50, 70, 9);
+    const haldane = calculateHaldane(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
+    const buhl = calculateZHL16C(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
     
     const haldaneDeco = haldane.decoStops.reduce((a, s) => a + s.time, 0);
     const buhlDeco = buhl.decoStops.reduce((a, s) => a + s.time, 0);
@@ -126,7 +126,7 @@ describe('Algorithm sanity checks', () => {
 
   it('60m/20min on air produces significant deco for ZHL-16C', () => {
     const phases = getPhases(60, 20);
-    const result = calculateZHL16C(phases, 0.21, 50, 70, 9);
+    const result = calculateZHL16C(phases, { fO2: 0.21, gfLow: 50, gfHigh: 70, ascentRate: 9 });
     const totalDeco = result.decoStops.reduce((a, s) => a + s.time, 0);
     
     // Should be roughly 60-100 min deco

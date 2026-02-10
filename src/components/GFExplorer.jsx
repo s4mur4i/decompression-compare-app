@@ -107,7 +107,7 @@ function simulateTissueTrajectory(profilePoints, phases, settings, paramSet) {
 export default function GFExplorer({ settings, profilePoints, profilePhases, theme = 'dark' }) {
   const [collapsed, setCollapsed] = useState(true);
   const [showExplanation, setShowExplanation] = useState(false);
-  const [selectedCompartments, setSelectedCompartments] = useState([0, 3, 7, 11, 15]);
+  const [selectedCompartments, setSelectedCompartments] = useState([0]);
 
   const algorithm = settings?.algorithm || 'none';
   const gfLow = settings?.gfLow || 50;
@@ -177,16 +177,19 @@ export default function GFExplorer({ settings, profilePoints, profilePhases, the
         pointRadius: 0,
       });
 
-      // Tissue trajectory — scatter dots (one per minute), no connecting lines
+      // Tissue trajectory — single connected line showing the dive path
       if (trajectories && trajectories[i]) {
         ds.push({
           label: `TC${i + 1} Dive`,
           data: trajectories[i],
-          borderColor: 'transparent',
-          backgroundColor: COMPARTMENT_COLORS[i % 16],
-          pointRadius: 2,
-          pointHoverRadius: 5,
-          showLine: false,
+          borderColor: COMPARTMENT_COLORS[i % 16] + 'CC',
+          backgroundColor: COMPARTMENT_COLORS[i % 16] + '20',
+          borderWidth: 2,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          showLine: true,
+          tension: 0.1,
+          fill: false,
         });
       }
     });

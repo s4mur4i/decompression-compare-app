@@ -83,6 +83,19 @@ export default function DiveSettings({
         <>
           <div className="settings-divider" />
 
+          <div className="gas-presets">
+            <button type="button" className={`gas-preset-btn${o2Pct === 21 && hePct === 0 ? ' active' : ''}`}
+              onClick={() => { onChange('fO2', 0.21); onChange('fHe', 0); }}>Air (21%)</button>
+            <button type="button" className={`gas-preset-btn${o2Pct === 32 && hePct === 0 ? ' active' : ''}`}
+              onClick={() => { onChange('fO2', 0.32); onChange('fHe', 0); }}>EAN32</button>
+            <button type="button" className={`gas-preset-btn${o2Pct === 36 && hePct === 0 ? ' active' : ''}`}
+              onClick={() => { onChange('fO2', 0.36); onChange('fHe', 0); }}>EAN36</button>
+            {supportsTrimix && (
+              <button type="button" className={`gas-preset-btn${o2Pct === 21 && hePct === 35 ? ' active' : ''}`}
+                onClick={() => { onChange('fO2', 0.21); onChange('fHe', 0.35); }}>Tx 21/35</button>
+            )}
+          </div>
+
           <div className="setting-row">
             <label>O₂ %</label>
             <div className="rate-input">

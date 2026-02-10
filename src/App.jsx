@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer } from 'react';
+import { useState, useEffect, useMemo, useReducer, useTransition } from 'react';
 import DiveChart from './components/DiveChart';
 import DiveStops from './components/DiveStops';
 import DiveSettings from './components/DiveSettings';
@@ -62,9 +62,19 @@ function App() {
   const [settingsA, dispatchA] = useReducer(settingsReducer, DEFAULT_SETTINGS);
   const [settingsB, dispatchB] = useReducer(settingsReducer, { ...DEFAULT_SETTINGS, algorithm: 'zhl16c' });
   const [initialized, setInitialized] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
+  const [isPending, startTransition] = useTransition();
 
-  const setA = (key, value) => dispatchA({ type: 'SET', key, value });
-  const setB = (key, value) => dispatchB({ type: 'SET', key, value });
+  // Theme
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '');
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => setTheme(t => t === 'dark' ? 'light' : 'dark');
+
+  const setA = (key, value) => startTransition(() => dispatchA({ type: 'SET', key, value }));
+  const setB = (key, value) => startTransition(() => dispatchB({ type: 'SET', key, value }));
   const onChangeA = (key) => (value) => setA(key, value);
   const onChangeB = (key) => (value) => setB(key, value);
 
@@ -247,6 +257,9 @@ function App() {
       <header className="app-header">
         <h1>🤿 Decompression Compare</h1>
         <p className="subtitle">Dive profile planner & algorithm comparison tool</p>
+        <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <div className="mode-toggle">
           <button className={`mode-btn ${!compareMode ? 'active' : ''}`} onClick={() => setCompareMode(false)}>Single</button>
           <button className={`mode-btn ${compareMode ? 'active' : ''}`} onClick={() => setCompareMode(true)}>Compare</button>
@@ -283,7 +296,9 @@ function App() {
 
         {/* 3. Graph */}
         <div className="chart-panel">
+          {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
           <DiveChart 
+            theme={theme}
             profiles={compareMode ? [
               { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
               { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }

@@ -23,7 +23,7 @@ ChartJS.register(
   annotationPlugin
 );
 
-export default function DiveChart({ profiles, modLines = [] }) {
+export default function DiveChart({ profiles, modLines = [], theme = 'dark' }) {
   const chartRef = useRef(null);
 
   if (!profiles || profiles.length === 0 || !profiles[0]?.points || profiles[0].points.length < 2) {
@@ -135,7 +135,7 @@ export default function DiveChart({ profiles, modLines = [] }) {
       legend: { 
         display: profiles.length > 1,
         position: 'top',
-        labels: { usePointStyle: true, pointStyle: 'line' },
+        labels: { usePointStyle: true, pointStyle: 'line', color: theme === 'light' ? '#4a5568' : undefined },
       },
       tooltip: {
         mode: 'index',
@@ -158,9 +158,10 @@ export default function DiveChart({ profiles, modLines = [] }) {
           display: true,
           text: 'Depth (metres)',
           font: { size: 14, weight: 'bold' },
+          color: theme === 'light' ? '#4a5568' : undefined,
         },
-        ticks: { stepSize: 5, callback: (val) => `${val}` },
-        grid: { color: 'rgba(255, 255, 255, 0.15)' },
+        ticks: { stepSize: 5, callback: (val) => `${val}`, color: theme === 'light' ? '#4a5568' : undefined },
+        grid: { color: theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)' },
       },
       x: {
         type: 'linear',
@@ -170,9 +171,10 @@ export default function DiveChart({ profiles, modLines = [] }) {
           display: true,
           text: 'Time (minutes)',
           font: { size: 14, weight: 'bold' },
+          color: theme === 'light' ? '#4a5568' : undefined,
         },
-        ticks: { stepSize: maxTime > 60 ? 10 : 5 },
-        grid: { color: 'rgba(255, 255, 255, 0.15)' },
+        ticks: { stepSize: maxTime > 60 ? 10 : 5, color: theme === 'light' ? '#4a5568' : undefined },
+        grid: { color: theme === 'light' ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.15)' },
       },
     },
     interaction: { mode: 'index', intersect: false },

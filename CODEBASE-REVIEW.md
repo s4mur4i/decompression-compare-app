@@ -3,16 +3,11 @@
 ## UX Improvements
 
 - [ ] **Dark/Light mode toggle** — currently dark-only (small)
-- [ ] **Mobile responsiveness** — compare mode stacks on <900px but inputs are cramped (medium)
-- [ ] **Keyboard shortcuts** — Enter to add stop, Delete to remove (small)
+- [ ] **Mobile responsiveness** — improve cramped inputs on mobile, better touch targets (medium)
 - [ ] **Drag-and-drop stop reordering** — replace ↑↓ buttons (medium)
-- [ ] **Preset dive plans** — "30m/20min", "40m/30min" quick-load buttons (small)
 - [ ] **Imperial units toggle** — feet/FSW support (medium)
-- [ ] **Accessibility audit** — aria labels, color contrast, screen reader support (medium)
-- [ ] **Undo/redo** — for stop changes and settings (medium)
 - [ ] **Quick gas presets** — Air, EAN32, EAN36, Trimix 21/35 buttons (small)
-- [ ] **Responsive chart** — currently fixed 500px height, bad on mobile (small)
-- [ ] **Touch-friendly inputs** — larger touch targets on mobile (small)
+- [ ] **Responsive chart** — make chart height adapt to screen (small)
 - [ ] **Loading/calculating indicator** — for complex profiles (small)
 
 ## Algorithm Improvements

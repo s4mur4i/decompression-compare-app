@@ -10,6 +10,9 @@ import GFExplorer from './components/GFExplorer';
 import SupersatDisplay from './components/SupersatDisplay';
 import ErrorBoundary from './components/ErrorBoundary';
 import InstallPrompt from './components/InstallPrompt';
+import ResultTabs from './components/ResultTabs';
+import GasPlan from './components/GasPlan';
+import O2Toxicity from './components/O2Toxicity';
 
 // Lazy-loaded educational components
 const AlgorithmInfo = lazy(() => import('./components/AlgorithmInfo'));
@@ -52,6 +55,10 @@ const DEFAULT_SETTINGS = {
   tankSize: 24,
   tankPressure: 200,
   reservePressure: 50,
+  stage1TankSize: 7,
+  stage1TankPressure: 200,
+  stage2TankSize: 7,
+  stage2TankPressure: 200,
 };
 
 function settingsReducer(state, action) {
@@ -101,6 +108,7 @@ function App() {
   const [settingsA, dispatchA] = useReducer(settingsReducer, DEFAULT_SETTINGS);
   const [settingsB, dispatchB] = useReducer(settingsReducer, { ...DEFAULT_SETTINGS, algorithm: 'zhl16c' });
   const [learningAlgo, setLearningAlgo] = useState('zhl16c');
+  const [resultTab, setResultTab] = useState('overview');
   const [initialized, setInitialized] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [isPending, startTransition] = useTransition();
@@ -256,6 +264,16 @@ function App() {
     return { cns, otu };
   }, [compareMode, resultB, settingsB.fO2, settingsB.fHe]);
 
+  // Build per-gas tank config helper
+  const buildPerGasTanks = (s) => {
+    const tanks = {
+      bottom: { size: s.tankSize || 24, pressure: s.tankPressure || 200 },
+    };
+    if (s.decoGas1) tanks.stage1 = { size: s.stage1TankSize || 7, pressure: s.stage1TankPressure || 200 };
+    if (s.decoGas2) tanks.stage2 = { size: s.stage2TankSize || 7, pressure: s.stage2TankPressure || 200 };
+    return tanks;
+  };
+
   // Gas consumption
   const gasDataA = useMemo(() => {
     if (!resultA?.phases) return null;
@@ -263,7 +281,8 @@ function App() {
     const tankSize = settingsA.tankSize || 24;
     const tankPressure = settingsA.tankPressure || 200;
     const reservePressure = settingsA.reservePressure || 50;
-    const consumption = calculateGasConsumption(resultA.phases, sacRate, settingsA.fO2, settingsA.fHe);
+    const perGasTanks = buildPerGasTanks(settingsA);
+    const consumption = calculateGasConsumption(resultA.phases, sacRate, settingsA.fO2, settingsA.fHe, perGasTanks);
     const rockBottom = calculateRockBottom(resultA.phases, sacRate, tankSize);
     const turnPressure = calculateTurnPressure(tankPressure, reservePressure, consumption.totalLiters, tankSize);
     return { consumption, rockBottom, turnPressure };
@@ -275,7 +294,8 @@ function App() {
     const tankSize = settingsB.tankSize || 24;
     const tankPressure = settingsB.tankPressure || 200;
     const reservePressure = settingsB.reservePressure || 50;
-    const consumption = calculateGasConsumption(resultB.phases, sacRate, settingsB.fO2, settingsB.fHe);
+    const perGasTanks = buildPerGasTanks(settingsB);
+    const consumption = calculateGasConsumption(resultB.phases, sacRate, settingsB.fO2, settingsB.fHe, perGasTanks);
     const rockBottom = calculateRockBottom(resultB.phases, sacRate, tankSize);
     const turnPressure = calculateTurnPressure(tankPressure, reservePressure, consumption.totalLiters, tankSize);
     return { consumption, rockBottom, turnPressure };
@@ -442,116 +462,201 @@ function App() {
               )}
             </div>
 
-            <ErrorBoundary section="Chart">
-              <div className="chart-panel">
-                {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
-                <MemoizedDiveChart 
-                  theme={theme}
-                  profiles={compareMode ? [
-                    { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
-                    { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
-                  ] : [
-                    { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
-                  ]}
-                  modLines={modLines}
-                  ceilingLines={ceilingLines}
-                />
+            {/* Key metrics bar */}
+            {resultA && (
+              <div className="key-metrics-bar">
+                <div className="key-metric">
+                  <span className="key-metric-label">TTS</span>
+                  <span className="key-metric-value">{resultA.totalTime || 0} min</span>
+                </div>
+                <div className="key-metric">
+                  <span className="key-metric-label">Max Depth</span>
+                  <span className="key-metric-value">{stops.length ? Math.max(...stops.map(s => s.depth)) : 0}m</span>
+                </div>
+                {ndlA && (
+                  <div className={`key-metric ${ndlA.inDeco ? 'key-metric-warn' : 'key-metric-ok'}`}>
+                    <span className="key-metric-label">NDL</span>
+                    <span className="key-metric-value">{ndlA.inDeco ? 'In Deco' : `+${ndlA.ndl} min`}</span>
+                  </div>
+                )}
+                {o2DataA?.cns && (
+                  <div className={`key-metric ${o2DataA.cns.totalCNS > 80 ? 'key-metric-warn' : 'key-metric-ok'}`}>
+                    <span className="key-metric-label">CNS</span>
+                    <span className="key-metric-value">{o2DataA.cns.totalCNS.toFixed(0)}%</span>
+                  </div>
+                )}
+                {gasDataA?.consumption?.gasBreakdown?.bottom && (
+                  <div className={`key-metric ${gasDataA.consumption.gasBreakdown.bottom.status === 'ok' ? 'key-metric-ok' : 'key-metric-warn'}`}>
+                    <span className="key-metric-label">Gas</span>
+                    <span className="key-metric-value">
+                      {gasDataA.consumption.gasBreakdown.bottom.status === 'ok' ? '✅' : gasDataA.consumption.gasBreakdown.bottom.status === 'warning' ? '⚠️' : '❌'}
+                      {' '}{Math.max(0, gasDataA.consumption.gasBreakdown.bottom.remainingPct).toFixed(0)}%
+                    </span>
+                  </div>
+                )}
               </div>
-            </ErrorBoundary>
+            )}
 
-            <ErrorBoundary section="Tissue Chart">
-              <MemoizedTissueChart
-                decoInfoA={resultA?.decoInfo}
-                decoInfoB={resultB?.decoInfo}
-                compareMode={compareMode}
-                theme={theme}
-              />
-            </ErrorBoundary>
+            {/* Result Tabs */}
+            <ResultTabs activeTab={resultTab} onTabChange={setResultTab} />
 
-            <ErrorBoundary section="GF Explorer">
-              <MemoizedGFExplorer settings={settingsA} profilePoints={resultA?.points} profilePhases={resultA?.phases} theme={theme} />
-            </ErrorBoundary>
+            {/* Overview Tab */}
+            {resultTab === 'overview' && (
+              <>
+                <ErrorBoundary section="Chart">
+                  <div className="chart-panel">
+                    {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
+                    <MemoizedDiveChart 
+                      theme={theme}
+                      profiles={compareMode ? [
+                        { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
+                        { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
+                      ] : [
+                        { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
+                      ]}
+                      modLines={modLines}
+                      ceilingLines={ceilingLines}
+                    />
+                  </div>
+                </ErrorBoundary>
 
-            {/* Summary */}
-            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-              <div className="algorithm-panel panel-a">
-                <ErrorBoundary section="Summary">
-                  <MemoizedDiveSummary
-                    stops={stops} totalTime={resultA?.totalTime || 0}
-                    decoInfo={resultA?.decoInfo} color="#4fc3f7"
-                    compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
-                    modViolation={modViolationA}
-                    mod={settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : null}
-                    o2Data={o2DataA}
-                    gasData={gasDataA}
-                    ndl={ndlA}
-                    settings={settingsA}
+                {/* Summary */}
+                <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+                  <div className="algorithm-panel panel-a">
+                    <ErrorBoundary section="Summary">
+                      <MemoizedDiveSummary
+                        stops={stops} totalTime={resultA?.totalTime || 0}
+                        decoInfo={resultA?.decoInfo} color="#4fc3f7"
+                        compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
+                        modViolation={modViolationA}
+                        mod={settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : null}
+                        o2Data={o2DataA}
+                        gasData={gasDataA}
+                        ndl={ndlA}
+                        settings={settingsA}
+                      />
+                    </ErrorBoundary>
+                  </div>
+                  {compareMode && (
+                    <div className="algorithm-panel panel-b">
+                      <ErrorBoundary section="Summary B">
+                        <MemoizedDiveSummary
+                          stops={stops} totalTime={resultB?.totalTime || 0}
+                          decoInfo={resultB?.decoInfo} color="#ff9800"
+                          compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
+                          modViolation={modViolationB}
+                          mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
+                          o2Data={o2DataB}
+                          gasData={gasDataB}
+                          settings={settingsB}
+                        />
+                      </ErrorBoundary>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+
+            {/* Dive Plan Tab */}
+            {resultTab === 'plan' && (
+              <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+                <div className="algorithm-panel panel-a">
+                  <ErrorBoundary section="Dive Plan">
+                    <MemoizedDiveTable phases={resultA?.phases || []} color="#4fc3f7" settings={settingsA} />
+                  </ErrorBoundary>
+                </div>
+                {compareMode && (
+                  <div className="algorithm-panel panel-b">
+                    <ErrorBoundary section="Dive Plan B">
+                      <MemoizedDiveTable phases={resultB?.phases || []} color="#ff9800" settings={settingsB} />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Gas Plan Tab */}
+            {resultTab === 'gas' && (
+              <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+                <div className="algorithm-panel panel-a">
+                  <ErrorBoundary section="Gas Plan">
+                    <GasPlan settings={settingsA} gasData={gasDataA} color="#4fc3f7" />
+                  </ErrorBoundary>
+                </div>
+                {compareMode && (
+                  <div className="algorithm-panel panel-b">
+                    <ErrorBoundary section="Gas Plan B">
+                      <GasPlan settings={settingsB} gasData={gasDataB} color="#ff9800" />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* O₂ Toxicity Tab */}
+            {resultTab === 'o2' && (
+              <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+                <div className="algorithm-panel panel-a">
+                  <ErrorBoundary section="O₂ Toxicity">
+                    <O2Toxicity o2Data={o2DataA} color="#4fc3f7" />
+                  </ErrorBoundary>
+                </div>
+                {compareMode && (
+                  <div className="algorithm-panel panel-b">
+                    <ErrorBoundary section="O₂ Toxicity B">
+                      <O2Toxicity o2Data={o2DataB} color="#ff9800" />
+                    </ErrorBoundary>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Analysis Tab */}
+            {resultTab === 'analysis' && (
+              <>
+                <ErrorBoundary section="Tissue Chart">
+                  <MemoizedTissueChart
+                    decoInfoA={resultA?.decoInfo}
+                    decoInfoB={resultB?.decoInfo}
+                    compareMode={compareMode}
+                    theme={theme}
                   />
                 </ErrorBoundary>
-              </div>
-              {compareMode && (
-                <div className="algorithm-panel panel-b">
-                  <ErrorBoundary section="Summary B">
-                    <MemoizedDiveSummary
-                      stops={stops} totalTime={resultB?.totalTime || 0}
-                      decoInfo={resultB?.decoInfo} color="#ff9800"
-                      compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
-                      modViolation={modViolationB}
-                      mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
-                      o2Data={o2DataB}
-                      gasData={gasDataB}
-                      settings={settingsB}
-                    />
-                  </ErrorBoundary>
-                </div>
-              )}
-            </div>
 
-            {/* Supersaturation */}
-            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-              <div className="algorithm-panel panel-a">
-                <ErrorBoundary section="Supersaturation">
-                  <MemoizedSupersatDisplay
-                    decoInfo={resultA?.decoInfo}
-                    profilePoints={resultA?.points}
-                    profilePhases={resultA?.phases}
-                    settings={settingsA}
-                    label={compareMode ? 'A' : ''}
-                    color="#4fc3f7"
-                  />
+                <ErrorBoundary section="GF Explorer">
+                  <MemoizedGFExplorer settings={settingsA} profilePoints={resultA?.points} profilePhases={resultA?.phases} theme={theme} />
                 </ErrorBoundary>
-              </div>
-              {compareMode && (
-                <div className="algorithm-panel panel-b">
-                  <ErrorBoundary section="Supersaturation B">
-                    <MemoizedSupersatDisplay
-                      decoInfo={resultB?.decoInfo}
-                      profilePoints={resultB?.points}
-                      profilePhases={resultB?.phases}
-                      settings={settingsB}
-                      label="B"
-                      color="#ff9800"
-                    />
-                  </ErrorBoundary>
-                </div>
-              )}
-            </div>
 
-            {/* Dive Plan */}
-            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-              <div className="algorithm-panel panel-a">
-                <ErrorBoundary section="Dive Plan">
-                  <MemoizedDiveTable phases={resultA?.phases || []} color="#4fc3f7" settings={settingsA} />
-                </ErrorBoundary>
-              </div>
-              {compareMode && (
-                <div className="algorithm-panel panel-b">
-                  <ErrorBoundary section="Dive Plan B">
-                    <MemoizedDiveTable phases={resultB?.phases || []} color="#ff9800" settings={settingsB} />
-                  </ErrorBoundary>
+                <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+                  <div className="algorithm-panel panel-a">
+                    <ErrorBoundary section="Supersaturation">
+                      <MemoizedSupersatDisplay
+                        decoInfo={resultA?.decoInfo}
+                        profilePoints={resultA?.points}
+                        profilePhases={resultA?.phases}
+                        settings={settingsA}
+                        label={compareMode ? 'A' : ''}
+                        color="#4fc3f7"
+                      />
+                    </ErrorBoundary>
+                  </div>
+                  {compareMode && (
+                    <div className="algorithm-panel panel-b">
+                      <ErrorBoundary section="Supersaturation B">
+                        <MemoizedSupersatDisplay
+                          decoInfo={resultB?.decoInfo}
+                          profilePoints={resultB?.points}
+                          profilePhases={resultB?.phases}
+                          settings={settingsB}
+                          label="B"
+                          color="#ff9800"
+                        />
+                      </ErrorBoundary>
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
 
             <ShareLink />
           </>

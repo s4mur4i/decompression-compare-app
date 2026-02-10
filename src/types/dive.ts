@@ -89,6 +89,31 @@ export interface DiveSettings {
   tankSize: number;
   tankPressure: number;
   reservePressure: number;
+  stage1TankSize: number;
+  stage1TankPressure: number;
+  stage2TankSize: number;
+  stage2TankPressure: number;
+}
+
+export interface TankPreset {
+  label: string;
+  value: number;
+}
+
+export interface GasBreakdownEntry {
+  tankSize: number;
+  tankPressure: number;
+  totalVolume: number;
+  used: number;
+  remaining: number;
+  remainingPct: number;
+  status: 'ok' | 'warning' | 'critical';
+}
+
+export interface PerGasTanks {
+  bottom: { size: number; pressure: number };
+  stage1?: { size: number; pressure: number };
+  stage2?: { size: number; pressure: number };
 }
 
 export interface CNSResult {

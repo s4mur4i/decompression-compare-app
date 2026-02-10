@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateGasConsumption, calculateRockBottom, calculateTurnPressure, litersToBars } from '../gasPlanning';
+import { calculateGasConsumption, calculateRockBottom, calculateTurnPressure, litersToBars, TANK_PRESETS } from '../gasPlanning';
 
 describe('Gas consumption', () => {
   it('surface consumption = SAC × time', () => {
@@ -74,6 +74,69 @@ describe('Turn pressure', () => {
     const tp = calculateTurnPressure(200, 50, 5000, 24);
     // 5000L / 24L = 209 bar needed + 50 = 259 > 200
     expect(tp.sufficient).toBe(false);
+  });
+});
+
+describe('Tank presets', () => {
+  it('exports valid presets', () => {
+    expect(TANK_PRESETS.length).toBeGreaterThan(5);
+    for (const p of TANK_PRESETS) {
+      expect(p.label).toBeTruthy();
+      expect(p.value).toBeGreaterThan(0);
+    }
+  });
+
+  it('includes common sizes', () => {
+    const values = TANK_PRESETS.map(p => p.value);
+    expect(values).toContain(11.1);  // AL80/S80
+    expect(values).toContain(12);    // 12L Steel
+    expect(values).toContain(24);    // Twins
+    expect(values).toContain(7);     // Stage
+  });
+});
+
+describe('Per-gas tank breakdown', () => {
+  it('returns gasBreakdown when perGasTanks provided', () => {
+    const phases = [{ depth: 20, duration: 30, action: 'Stay' }];
+    const tanks = { bottom: { size: 12, pressure: 200 } };
+    const result = calculateGasConsumption(phases, 20, 0.21, 0, tanks);
+    expect(result.gasBreakdown).toBeTruthy();
+    expect(result.gasBreakdown.bottom).toBeTruthy();
+    expect(result.gasBreakdown.bottom.totalVolume).toBe(2400);
+    expect(result.gasBreakdown.bottom.used).toBeGreaterThan(0);
+    expect(result.gasBreakdown.bottom.remaining).toBeLessThan(2400);
+  });
+
+  it('calculates sufficiency status correctly', () => {
+    // Tiny tank, lots of gas needed → critical
+    const phases = [{ depth: 40, duration: 60, action: 'Stay' }];
+    const tanks = { bottom: { size: 3, pressure: 200 } };
+    const result = calculateGasConsumption(phases, 20, 0.21, 0, tanks);
+    expect(result.gasBreakdown.bottom.status).toBe('critical');
+  });
+
+  it('ok status for large tank with short dive', () => {
+    const phases = [{ depth: 10, duration: 5, action: 'Stay' }];
+    const tanks = { bottom: { size: 24, pressure: 200 } };
+    const result = calculateGasConsumption(phases, 20, 0.21, 0, tanks);
+    expect(result.gasBreakdown.bottom.status).toBe('ok');
+    expect(result.gasBreakdown.bottom.remainingPct).toBeGreaterThan(30);
+  });
+
+  it('warning status at 10-30% remaining', () => {
+    // Engineer a scenario: ~20% remaining
+    // 24L @ 200bar = 4800L total. Need ~3840L used (80%).
+    // At 30m: SAC 20 * 4 * T = 80T. Need 80T = 3840 → T = 48 min
+    const phases = [{ depth: 30, duration: 48, action: 'Stay' }];
+    const tanks = { bottom: { size: 24, pressure: 200 } };
+    const result = calculateGasConsumption(phases, 20, 0.21, 0, tanks);
+    expect(result.gasBreakdown.bottom.status).toBe('warning');
+  });
+
+  it('returns null gasBreakdown without perGasTanks', () => {
+    const phases = [{ depth: 10, duration: 10, action: 'Stay' }];
+    const result = calculateGasConsumption(phases, 20);
+    expect(result.gasBreakdown).toBeNull();
   });
 });
 

@@ -1,5 +1,6 @@
 import { ALGORITHMS } from '../utils/buhlmann';
 import { ALGORITHM_TOOLTIPS } from '../utils/algorithmTooltips';
+import { TANK_PRESETS } from '../utils/gasPlanning';
 
 function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
   return (
@@ -21,6 +22,47 @@ function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
       }}
       {...props}
     />
+  );
+}
+
+function TankSizeRow({ tankSize, tankPressure, onSizeChange, onPressureChange }) {
+  const isCustom = !TANK_PRESETS.some(p => Math.abs(p.value - tankSize) < 0.05);
+  const totalVol = tankSize * tankPressure;
+  return (
+    <div className="tank-size-row">
+      <div className="setting-row">
+        <label>Tank</label>
+        <select
+          className="algo-select"
+          value={isCustom ? 'custom' : String(tankSize)}
+          onChange={e => { if (e.target.value !== 'custom') onSizeChange(Number(e.target.value)); }}
+        >
+          {TANK_PRESETS.map(p => (
+            <option key={p.label} value={String(p.value)}>{p.label}</option>
+          ))}
+          <option value="custom">Custom</option>
+        </select>
+      </div>
+      {isCustom && (
+        <div className="setting-row">
+          <label>Size (L)</label>
+          <div className="rate-input">
+            <NumInput value={tankSize} min={1} max={50} step={0.1}
+              onChange={onSizeChange} onBlur={onSizeChange} />
+            <span>L</span>
+          </div>
+        </div>
+      )}
+      <div className="setting-row">
+        <label>Fill Pressure</label>
+        <div className="rate-input">
+          <NumInput value={tankPressure} min={50} max={300}
+            onChange={onPressureChange} onBlur={onPressureChange} />
+          <span>bar</span>
+        </div>
+      </div>
+      <div className="gas-mix-label">Total: {Math.round(totalVol)}L</div>
+    </div>
   );
 }
 
@@ -295,41 +337,54 @@ export default function DiveSettings({
           </div>
 
           <div className="settings-divider" />
-          <h4 className="settings-subtitle">Gas Planning</h4>
+          <details className="settings-collapsible">
+            <summary className="settings-collapsible-header">⛽ Gas Planning</summary>
+            <div className="settings-collapsible-body">
 
-          <div className="setting-row">
-            <label>SAC Rate</label>
-            <div className="rate-input">
-              <NumInput value={settings.sacRate || 20} min={5} max={40}
-                onChange={set("sacRate")}
-                onBlur={set("sacRate")} />
-              <span>L/min</span>
-            </div>
-          </div>
-
-          <div className="setting-row">
-            <label>Tank Size</label>
-            <div className="rate-input">
-              <div className="gas-presets">
-                <button type="button" className={`gas-preset-btn${(settings.tankSize || 24) === 12 ? ' active' : ''}`}
-                  onClick={() => onChange('tankSize', 12)}>12L</button>
-                <button type="button" className={`gas-preset-btn${(settings.tankSize || 24) === 15 ? ' active' : ''}`}
-                  onClick={() => onChange('tankSize', 15)}>15L</button>
-                <button type="button" className={`gas-preset-btn${(settings.tankSize || 24) === 24 ? ' active' : ''}`}
-                  onClick={() => onChange('tankSize', 24)}>2×12L</button>
+              <div className="setting-row">
+                <label>SAC Rate</label>
+                <div className="rate-input">
+                  <NumInput value={settings.sacRate || 20} min={5} max={40}
+                    onChange={set("sacRate")}
+                    onBlur={set("sacRate")} />
+                  <span>L/min</span>
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className="setting-row">
-            <label>Start Pressure</label>
-            <div className="rate-input">
-              <NumInput value={settings.tankPressure || 200} min={50} max={300}
-                onChange={set("tankPressure")}
-                onBlur={set("tankPressure")} />
-              <span>bar</span>
+              <h4 className="settings-subtitle" style={{ marginTop: 12 }}>Bottom Gas Tank</h4>
+              <TankSizeRow
+                tankSize={settings.tankSize || 24}
+                tankPressure={settings.tankPressure || 200}
+                onSizeChange={(v) => onChange('tankSize', v)}
+                onPressureChange={(v) => onChange('tankPressure', v)}
+              />
+
+              {decoGas1 && (
+                <>
+                  <h4 className="settings-subtitle" style={{ marginTop: 12 }}>Stage 1 Tank</h4>
+                  <TankSizeRow
+                    tankSize={settings.stage1TankSize || 7}
+                    tankPressure={settings.stage1TankPressure || 200}
+                    onSizeChange={(v) => onChange('stage1TankSize', v)}
+                    onPressureChange={(v) => onChange('stage1TankPressure', v)}
+                  />
+                </>
+              )}
+
+              {decoGas2 && (
+                <>
+                  <h4 className="settings-subtitle" style={{ marginTop: 12 }}>Stage 2 Tank</h4>
+                  <TankSizeRow
+                    tankSize={settings.stage2TankSize || 7}
+                    tankPressure={settings.stage2TankPressure || 200}
+                    onSizeChange={(v) => onChange('stage2TankSize', v)}
+                    onPressureChange={(v) => onChange('stage2TankPressure', v)}
+                  />
+                </>
+              )}
+
             </div>
-          </div>
+          </details>
         </>
       )}
     </div>

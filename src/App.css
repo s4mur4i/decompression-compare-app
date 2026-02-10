@@ -1280,6 +1280,398 @@ input[type="number"]::-webkit-inner-spin-button {
   }
 }
 
+/* Result Tabs */
+.result-tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-accent);
+  border-radius: 12px;
+  padding: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.result-tab {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.result-tab.active {
+  background: var(--accent);
+  color: var(--accent-dark);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.result-tab:hover:not(.active) {
+  background: rgba(79, 195, 247, 0.1);
+  color: var(--text-primary);
+  border-color: var(--border-accent);
+}
+
+/* Key Metrics Bar */
+.key-metrics-bar {
+  display: flex;
+  gap: 8px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-accent);
+  border-radius: 12px;
+  padding: 10px 16px;
+  overflow-x: auto;
+}
+
+.key-metric {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 16px;
+  border-right: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.key-metric:last-child {
+  border-right: none;
+}
+
+.key-metric-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.key-metric-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.key-metric-ok .key-metric-value { color: #66bb6a; }
+.key-metric-warn .key-metric-value { color: #ff9800; }
+
+/* Gas Plan */
+.gas-plan {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-accent);
+}
+
+.gas-plan-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.gas-plan-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  border-left: 3px solid #66bb6a;
+}
+
+.gas-plan-line.sufficiency-warning {
+  border-left-color: #ff9800;
+  background: rgba(255, 152, 0, 0.05);
+}
+
+.gas-plan-line.sufficiency-critical {
+  border-left-color: #ff4444;
+  background: rgba(255, 68, 68, 0.05);
+}
+
+.gas-plan-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 100px;
+}
+
+.gas-plan-tank {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.gas-plan-usage {
+  margin-left: auto;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.gas-plan-simple {
+  margin-bottom: 16px;
+}
+
+.gas-plan-stat {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.gas-plan-stat-label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.gas-plan-stat-value {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gas-plan-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.gas-plan-metric {
+  padding: 10px 12px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.gas-plan-metric.metric-critical {
+  border: 1px solid rgba(255, 68, 68, 0.3);
+  background: rgba(255, 68, 68, 0.05);
+}
+
+.gas-plan-metric-label {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.gas-plan-metric-value {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.gas-plan-metric-detail {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: normal;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* O₂ Toxicity */
+.o2-toxicity {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid var(--border-accent);
+}
+
+.o2-section {
+  margin-bottom: 20px;
+}
+
+.o2-section:last-child {
+  margin-bottom: 0;
+}
+
+.o2-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.o2-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.o2-value {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.o2-bar-bg {
+  position: relative;
+  height: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  overflow: visible;
+}
+
+.o2-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.3s ease;
+}
+
+.o2-threshold {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 16px;
+  background: #ff9800;
+  border-radius: 1px;
+}
+
+.o2-threshold-danger {
+  background: #ff4444;
+}
+
+.o2-limits {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.o2-warning {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 152, 0, 0.1);
+  border: 1px solid rgba(255, 152, 0, 0.3);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  color: #ff9800;
+}
+
+.o2-warning.o2-danger {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: rgba(255, 68, 68, 0.3);
+  color: #ff4444;
+}
+
+.o2-details {
+  margin-top: 8px;
+}
+
+.o2-details summary {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.o2-phase-list {
+  margin-top: 6px;
+}
+
+.o2-phase-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.o2-phase-item:nth-child(odd) {
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+
+/* Settings collapsible */
+.settings-collapsible {
+  margin-top: 4px;
+}
+
+.settings-collapsible-header {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px 0;
+  list-style: none;
+}
+
+.settings-collapsible-header::-webkit-details-marker {
+  display: none;
+}
+
+.settings-collapsible-header::before {
+  content: '▶ ';
+  font-size: 0.7rem;
+  transition: transform 0.15s;
+  display: inline-block;
+}
+
+.settings-collapsible[open] > .settings-collapsible-header::before {
+  content: '▼ ';
+}
+
+.settings-collapsible-body {
+  padding: 8px 0;
+}
+
+/* Tank size row */
+.tank-size-row {
+  margin-bottom: 8px;
+}
+
+.tank-size-row .setting-row {
+  margin-top: 6px;
+}
+
+.tank-size-row .gas-mix-label {
+  margin-top: 4px;
+  font-size: 0.72rem;
+}
+
+@media (max-width: 600px) {
+  .result-tabs {
+    padding: 4px;
+    gap: 2px;
+  }
+
+  .result-tab {
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .key-metrics-bar {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .key-metric {
+    padding: 4px 10px;
+  }
+
+  .key-metric-value {
+    font-size: 0.9rem;
+  }
+
+  .gas-plan-line {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .gas-plan-usage {
+    margin-left: 0;
+  }
+
+  .gas-plan-metrics {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Chart explanations */
 .chart-explanation {
   font-size: 0.8rem;

@@ -71,7 +71,7 @@ export default function DiveSettings({
       </div>
 
       <div className="setting-row">
-        <label>Ascent Rate</label>
+        <label>Ascent to First Stop</label>
         <div className="rate-input">
           <NumInput value={ascentRate} min={1} max={30}
             onChange={set("ascentRate")}
@@ -81,7 +81,7 @@ export default function DiveSettings({
       </div>
 
       <div className="setting-row">
-        <label>Deco Ascent</label>
+        <label>Ascent during Deco</label>
         <div className="rate-input">
           <NumInput value={decoAscentRate} min={1} max={18}
             onChange={set("decoAscentRate")}

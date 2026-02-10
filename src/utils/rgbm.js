@@ -34,8 +34,7 @@ const COMPARTMENTS = [
   [635.0, 0.2327, 0.9653],
 ];
 
-const P_SURFACE = 1.01325;
-const P_WATER_VAPOR = 0.0627;
+import { P_SURFACE, P_WATER_VAPOR } from './constants.js';
 
 function depthToPressure(depth) {
   return P_SURFACE + depth / 10.0;

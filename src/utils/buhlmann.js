@@ -64,8 +64,7 @@ const PARAM_SETS = {
   }
 };
 
-const P_WATER_VAPOR = 0.0627;
-const P_SURFACE = 1.01325;
+import { P_WATER_VAPOR, P_SURFACE } from './constants.js';
 
 function depthToPressure(depth) {
   return P_SURFACE + depth / 10.0;

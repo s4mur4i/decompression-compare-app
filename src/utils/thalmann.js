@@ -20,12 +20,7 @@ const THALMANN_COMPARTMENTS = [
   [240.0, 300.0, 1.4, 0.0194] // Compartment 9 - Slow asymmetric
 ];
 
-// Physical constants
-const WATER_VAPOR_PRESSURE = 0.0627; // bar
-const SURFACE_PRESSURE = 1.01325; // bar
-
-// Linear elimination threshold (when linear kinetics activate)
-const LINEAR_THRESHOLD_FACTOR = 1.05; // 5% supersaturation threshold
+import { P_WATER_VAPOR as WATER_VAPOR_PRESSURE, P_SURFACE as SURFACE_PRESSURE, LINEAR_THRESHOLD_FACTOR } from './constants.js';
 
 /**
  * Convert depth in meters to absolute pressure in bar (saltwater).

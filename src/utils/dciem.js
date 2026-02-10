@@ -15,13 +15,7 @@ const DCIEM_COMPARTMENTS = [
   [480.0, 1.4]  // Compartment 4 - Very slow perfusion (bone, cartilage)
 ];
 
-// Physical constants
-const WATER_VAPOR_PRESSURE = 0.0627; // bar
-const SURFACE_PRESSURE = 1.01325; // bar
-
-// DCIEM specific constants
-const DCIEM_ASCENT_PENALTY = 1.1; // 10% extra conservatism for ascent phases
-const DCIEM_SAFETY_FACTOR = 0.9;  // 10% reduction in allowable supersaturation
+import { P_WATER_VAPOR as WATER_VAPOR_PRESSURE, P_SURFACE as SURFACE_PRESSURE, DCIEM_ASCENT_PENALTY, DCIEM_SAFETY_FACTOR } from './constants.js';
 
 /**
  * Convert depth in meters to absolute pressure in bar (saltwater).

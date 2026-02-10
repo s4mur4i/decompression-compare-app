@@ -17,14 +17,7 @@ const HALFTIMES = [
   109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0
 ];
 
-// Physical constants
-const GAMMA = 0.0179;          // Surface tension (N/m)  
-const GAMMA_C = 0.0257;        // Skin compression (N/m)
-const P_SURFACE = 1.01325;     // Surface pressure (bar)
-const P_WATER_VAPOR = 0.0627;  // Water vapor in lungs (bar)
-
-// VPM parameters
-const LAMBDA_N2 = 7500;        // Critical volume lambda for N2
+import { P_SURFACE, P_WATER_VAPOR, GAMMA, GAMMA_C, LAMBDA_N2 } from './constants.js';
 
 // Initial critical nucleus radii at surface (meters)
 // These are per-compartment, derived from empirical fitting

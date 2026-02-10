@@ -14,9 +14,7 @@ const HALDANE_HALFTIMES = [
   75.0   // Slow tissue (fat, bone)
 ];
 
-// Physical constants
-const WATER_VAPOR_PRESSURE = 0.0627; // bar (water vapor pressure in lungs)
-const SURFACE_PRESSURE = 1.01325; // bar (surface atmospheric pressure)
+import { P_WATER_VAPOR as WATER_VAPOR_PRESSURE, P_SURFACE as SURFACE_PRESSURE } from './constants.js';
 
 /**
  * Convert depth in meters to absolute pressure in bar (saltwater).

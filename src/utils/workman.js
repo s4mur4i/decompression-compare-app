@@ -35,9 +35,7 @@ const WORKMAN_M_VALUES = [
   [1.08, 0.0194]   // Compartment 9
 ];
 
-// Physical constants
-const WATER_VAPOR_PRESSURE = 0.0627; // bar
-const SURFACE_PRESSURE = 1.01325; // bar
+import { P_WATER_VAPOR as WATER_VAPOR_PRESSURE, P_SURFACE as SURFACE_PRESSURE } from './constants.js';
 
 /**
  * Convert depth in meters to absolute pressure in bar (saltwater).

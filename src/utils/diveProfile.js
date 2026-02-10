@@ -74,7 +74,6 @@ export function addAscentPhases(profile, ascentStops, ascentRate) {
     }
 
     if (stop.gasSwitch) {
-      // Gas switch: show as its own phase with its time (0 or 1 min from toggle)
       newPhases.push({
         depth: currentDepth,
         duration: stop.time,
@@ -91,7 +90,7 @@ export function addAscentPhases(profile, ascentStops, ascentRate) {
         depth: currentDepth,
         duration: stop.time,
         runTime: currentTime,
-        action: 'Deco Stop',
+        action: stop.safetyStop ? 'Safety Stop' : 'Deco Stop',
         gas: stop.gas || undefined,
       });
       currentTime += stop.time;
@@ -117,8 +116,17 @@ export function addAscentPhases(profile, ascentStops, ascentRate) {
 
 /**
  * Simple ascent (no algorithm) — just go up at ascent rate.
+ * Adds a safety stop for no-deco dives (3 min at lastStopDepth).
  */
-export function simpleAscent(profile, ascentRate) {
+export function simpleAscent(profile, ascentRate, lastStopDepth = 6) {
+  const { lastDepth } = profile;
+  // Add safety stop if we were at depth (> lastStopDepth)
+  if (lastDepth > lastStopDepth) {
+    const safetyStops = [
+      { depth: lastStopDepth, time: 3, safetyStop: true },
+    ];
+    return addAscentPhases(profile, safetyStops, ascentRate);
+  }
   return addAscentPhases(profile, [], ascentRate);
 }
 

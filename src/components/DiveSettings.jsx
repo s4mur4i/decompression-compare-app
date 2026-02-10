@@ -293,6 +293,43 @@ export default function DiveSettings({
           <div className="algo-description">
             {algo.description}
           </div>
+
+          <div className="settings-divider" />
+          <h4 className="settings-subtitle">Gas Planning</h4>
+
+          <div className="setting-row">
+            <label>SAC Rate</label>
+            <div className="rate-input">
+              <NumInput value={settings.sacRate || 20} min={5} max={40}
+                onChange={set("sacRate")}
+                onBlur={set("sacRate")} />
+              <span>L/min</span>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <label>Tank Size</label>
+            <div className="rate-input">
+              <div className="gas-presets">
+                <button type="button" className={`gas-preset-btn${(settings.tankSize || 24) === 12 ? ' active' : ''}`}
+                  onClick={() => onChange('tankSize', 12)}>12L</button>
+                <button type="button" className={`gas-preset-btn${(settings.tankSize || 24) === 15 ? ' active' : ''}`}
+                  onClick={() => onChange('tankSize', 15)}>15L</button>
+                <button type="button" className={`gas-preset-btn${(settings.tankSize || 24) === 24 ? ' active' : ''}`}
+                  onClick={() => onChange('tankSize', 24)}>2×12L</button>
+              </div>
+            </div>
+          </div>
+
+          <div className="setting-row">
+            <label>Start Pressure</label>
+            <div className="rate-input">
+              <NumInput value={settings.tankPressure || 200} min={50} max={300}
+                onChange={set("tankPressure")}
+                onBlur={set("tankPressure")} />
+              <span>bar</span>
+            </div>
+          </div>
         </>
       )}
     </div>

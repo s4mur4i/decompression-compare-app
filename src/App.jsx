@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useReducer, useTransition } from 'react';
+import { useState, useEffect, useMemo, useReducer, useTransition, lazy, Suspense, memo } from 'react';
 import DiveChart from './components/DiveChart';
 import DiveStops from './components/DiveStops';
 import DiveSettings from './components/DiveSettings';
@@ -8,9 +8,14 @@ import ShareLink from './components/ShareLink';
 import TissueChart from './components/TissueChart';
 import GFExplorer from './components/GFExplorer';
 import SupersatDisplay from './components/SupersatDisplay';
-import AlgorithmInfo from './components/AlgorithmInfo';
-import BubbleChart from './components/BubbleChart';
-import NDLTable from './components/NDLTable';
+import ErrorBoundary from './components/ErrorBoundary';
+import InstallPrompt from './components/InstallPrompt';
+
+// Lazy-loaded educational components
+const AlgorithmInfo = lazy(() => import('./components/AlgorithmInfo'));
+const BubbleChart = lazy(() => import('./components/BubbleChart'));
+const NDLTable = lazy(() => import('./components/NDLTable'));
+
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
@@ -23,6 +28,9 @@ import { calculateDSAT } from './utils/dsat';
 import { calculateUSNavy } from './utils/usnavy';
 import { calculateBSAC } from './utils/bsac';
 import { calculateCeilingTimeline } from './utils/ceiling';
+import { calculateCNS, calculateOTU } from './utils/oxygenToxicity';
+import { calculateGasConsumption, calculateRockBottom, calculateTurnPressure } from './utils/gasPlanning';
+import { findNDLForProfile } from './utils/ndl';
 import './App.css';
 
 const DEFAULT_SETTINGS = {
@@ -40,6 +48,10 @@ const DEFAULT_SETTINGS = {
   decoGas2: null,
   gasSwitchTime: true,
   lastStopDepth: 6,
+  sacRate: 20,
+  tankSize: 24,
+  tankPressure: 200,
+  reservePressure: 50,
 };
 
 function settingsReducer(state, action) {
@@ -71,9 +83,20 @@ const ALGORITHM_REGISTRY = {
   bsac:     { fn: calculateBSAC,    name: 'BSAC \'88',        description: 'British Sub-Aqua Club 1988 tables. Air only.',                           trimix: false, multiGas: false, gf: false },
 };
 
+// Memoized pure components
+const MemoizedDiveStops = memo(DiveStops);
+const MemoizedDiveSettings = memo(DiveSettings);
+const MemoizedDiveChart = memo(DiveChart);
+const MemoizedDiveSummary = memo(DiveSummary);
+const MemoizedDiveTable = memo(DiveTable);
+const MemoizedTissueChart = memo(TissueChart);
+const MemoizedGFExplorer = memo(GFExplorer);
+const MemoizedSupersatDisplay = memo(SupersatDisplay);
+
+const LazyFallback = () => <div className="loading-indicator"><span className="spinner" /> Loading…</div>;
+
 function App() {
   const [stops, setStops] = useState([]);
-  // mode: 'single' | 'compare' | 'learning'
   const [mode, setMode] = useState('single');
   const [settingsA, dispatchA] = useReducer(settingsReducer, DEFAULT_SETTINGS);
   const [settingsB, dispatchB] = useReducer(settingsReducer, { ...DEFAULT_SETTINGS, algorithm: 'zhl16c' });
@@ -84,7 +107,6 @@ function App() {
 
   const compareMode = mode === 'compare';
 
-  // Theme
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme === 'light' ? 'light' : '');
     localStorage.setItem('theme', theme);
@@ -95,7 +117,6 @@ function App() {
   const setA = (key, value) => startTransition(() => dispatchA({ type: 'SET', key, value }));
   const setB = (key, value) => startTransition(() => dispatchB({ type: 'SET', key, value }));
 
-  // MOD calculation
   const calcMOD = (fO2, ppO2) => fO2 > 0 ? Math.floor(10 * (ppO2 / fO2 - 1)) : 0;
 
   const runAlgorithm = (settings, phases) => {
@@ -120,7 +141,7 @@ function App() {
 
   const calculateFull = (settings) => {
     if (stops.length === 0) return null;
-    const { descentRate, ascentRate, decoAscentRate = 9, gasSwitchTime } = settings;
+    const { descentRate, ascentRate, decoAscentRate = 9, gasSwitchTime, lastStopDepth = 6 } = settings;
     const profile = calculateDiveProfile(stops, descentRate, ascentRate);
     const decoInfo = runAlgorithm(settings, profile.phases);
     if (decoInfo) {
@@ -130,7 +151,8 @@ function App() {
       const fullProfile = addAscentPhases(profile, adjustedStops, decoAscentRate);
       return { ...fullProfile, decoInfo };
     } else {
-      const fullProfile = simpleAscent(profile, ascentRate);
+      // No algorithm or no deco: add safety stop for no-deco dives
+      const fullProfile = simpleAscent(profile, ascentRate, lastStopDepth);
       return { ...fullProfile, decoInfo };
     }
   };
@@ -152,10 +174,12 @@ function App() {
     if (get('s2')) s.decoGas2 = { fO2: Number(get('s2')) / 100 };
     if (get('gst') === '0') s.gasSwitchTime = false;
     if (get('lsd')) s.lastStopDepth = Number(get('lsd'));
+    if (get('sac')) s.sacRate = Number(get('sac'));
+    if (get('tank')) s.tankSize = Number(get('tank'));
+    if (get('tp')) s.tankPressure = Number(get('tp'));
     return s;
   };
 
-  // URL loading
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get('plan')) setStops(parsePlan(p.get('plan')));
@@ -189,9 +213,11 @@ function App() {
     if (settings.decoGas2) set('s2', Math.round(settings.decoGas2.fO2 * 100));
     if (!settings.gasSwitchTime) set('gst', '0');
     if (settings.lastStopDepth !== def.lastStopDepth) set('lsd', settings.lastStopDepth);
+    if (settings.sacRate !== def.sacRate) set('sac', settings.sacRate);
+    if (settings.tankSize !== def.tankSize) set('tank', settings.tankSize);
+    if (settings.tankPressure !== def.tankPressure) set('tp', settings.tankPressure);
   };
 
-  // URL sync
   useEffect(() => {
     if (!initialized) return;
     const p = new URLSearchParams();
@@ -209,15 +235,59 @@ function App() {
     window.history.replaceState(null, '', `${window.location.pathname}?${p.toString()}`);
   }, [stops, mode, settingsA, settingsB, initialized]);
 
-  // Results
-  const resultA = useMemo(() => {
-    return calculateFull(settingsA);
-  }, [stops, settingsA]);
-
+  const resultA = useMemo(() => calculateFull(settingsA), [stops, settingsA]);
   const resultB = useMemo(() => {
     if (!compareMode) return null;
     return calculateFull(settingsB);
   }, [stops, compareMode, settingsB]);
+
+  // O2 toxicity tracking
+  const o2DataA = useMemo(() => {
+    if (!resultA?.phases) return null;
+    const cns = calculateCNS(resultA.phases, settingsA.fO2, settingsA.fHe);
+    const otu = calculateOTU(resultA.phases, settingsA.fO2, settingsA.fHe);
+    return { cns, otu };
+  }, [resultA, settingsA.fO2, settingsA.fHe]);
+
+  const o2DataB = useMemo(() => {
+    if (!compareMode || !resultB?.phases) return null;
+    const cns = calculateCNS(resultB.phases, settingsB.fO2, settingsB.fHe);
+    const otu = calculateOTU(resultB.phases, settingsB.fO2, settingsB.fHe);
+    return { cns, otu };
+  }, [compareMode, resultB, settingsB.fO2, settingsB.fHe]);
+
+  // Gas consumption
+  const gasDataA = useMemo(() => {
+    if (!resultA?.phases) return null;
+    const sacRate = settingsA.sacRate || 20;
+    const tankSize = settingsA.tankSize || 24;
+    const tankPressure = settingsA.tankPressure || 200;
+    const reservePressure = settingsA.reservePressure || 50;
+    const consumption = calculateGasConsumption(resultA.phases, sacRate, settingsA.fO2, settingsA.fHe);
+    const rockBottom = calculateRockBottom(resultA.phases, sacRate, tankSize);
+    const turnPressure = calculateTurnPressure(tankPressure, reservePressure, consumption.totalLiters, tankSize);
+    return { consumption, rockBottom, turnPressure };
+  }, [resultA, settingsA]);
+
+  const gasDataB = useMemo(() => {
+    if (!compareMode || !resultB?.phases) return null;
+    const sacRate = settingsB.sacRate || 20;
+    const tankSize = settingsB.tankSize || 24;
+    const tankPressure = settingsB.tankPressure || 200;
+    const reservePressure = settingsB.reservePressure || 50;
+    const consumption = calculateGasConsumption(resultB.phases, sacRate, settingsB.fO2, settingsB.fHe);
+    const rockBottom = calculateRockBottom(resultB.phases, sacRate, tankSize);
+    const turnPressure = calculateTurnPressure(tankPressure, reservePressure, consumption.totalLiters, tankSize);
+    return { consumption, rockBottom, turnPressure };
+  }, [compareMode, resultB, settingsB]);
+
+  // NDL calculation
+  const ndlA = useMemo(() => {
+    if (!stops.length || settingsA.algorithm === 'none') return null;
+    const entry = ALGORITHM_REGISTRY[settingsA.algorithm];
+    if (!entry?.fn) return null;
+    return findNDLForProfile(stops, entry.fn, settingsA);
+  }, [stops, settingsA]);
 
   const timeDifference = useMemo(() => {
     if (!compareMode || !resultA || !resultB) return null;
@@ -226,10 +296,8 @@ function App() {
     return `${diff > 0 ? '+' : ''}${diff} min`;
   }, [compareMode, resultA, resultB]);
 
-  // MOD lines for chart
   const modLines = useMemo(() => {
     const lines = [];
-    
     if (settingsA.algorithm !== 'none') {
       const modA = calcMOD(settingsA.fO2, settingsA.ppO2Max);
       lines.push({ depth: modA, color: '#ff4444', dash: [6, 4], label: `MOD ${modA}m (ppO₂ ${settingsA.ppO2Max})` });
@@ -242,7 +310,6 @@ function App() {
         lines.push({ depth: d, color: '#666666', dash: [4, 4], label: `S2 switch ${d}m` });
       }
     }
-    
     if (compareMode && settingsB.algorithm !== 'none') {
       const modB = calcMOD(settingsB.fO2, settingsB.ppO2Max);
       const modA = settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : -1;
@@ -258,11 +325,9 @@ function App() {
         lines.push({ depth: d, color: '#886633', dash: [4, 4], label: `B S2 switch ${d}m` });
       }
     }
-    
     return lines;
   }, [settingsA, settingsB, compareMode]);
 
-  // MOD violation check
   const modViolationA = useMemo(() => {
     if (settingsA.algorithm === 'none' || stops.length === 0) return false;
     const maxDepth = Math.max(...stops.map(s => s.depth));
@@ -294,7 +359,6 @@ function App() {
     return lines;
   }, [resultA, resultB, settingsA, settingsB, compareMode]);
 
-  // Learning mode settings
   const learningSettings = useMemo(() => ({
     ...DEFAULT_SETTINGS,
     algorithm: learningAlgo,
@@ -304,6 +368,7 @@ function App() {
 
   return (
     <div className="app">
+      <InstallPrompt />
       <header className="app-header">
         <h1>🤿 Decompression Compare</h1>
         <p className="subtitle">Dive profile planner & algorithm comparison tool</p>
@@ -319,150 +384,175 @@ function App() {
 
       <main className="app-main">
         {mode === 'learning' ? (
-          /* Learning Mode */
-          <div className="learning-mode">
-            <div className="learning-algo-selector">
-              <label>
-                Algorithm for NDL Table:
-                <select
-                  className="algo-select"
-                  value={learningAlgo}
-                  onChange={e => setLearningAlgo(e.target.value)}
-                >
-                  {Object.entries(ALGORITHM_REGISTRY).filter(([k, v]) => v.fn).map(([key, val]) => (
-                    <option key={key} value={key}>{val.name}</option>
-                  ))}
-                </select>
-              </label>
+          <ErrorBoundary section="Learning Mode">
+            <div className="learning-mode">
+              <div className="learning-algo-selector">
+                <label>
+                  Algorithm for NDL Table:
+                  <select
+                    className="algo-select"
+                    value={learningAlgo}
+                    onChange={e => setLearningAlgo(e.target.value)}
+                  >
+                    {Object.entries(ALGORITHM_REGISTRY).filter(([k, v]) => v.fn).map(([key, val]) => (
+                      <option key={key} value={key}>{val.name}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <Suspense fallback={<LazyFallback />}>
+                <NDLTable
+                  algorithmFn={learningAlgoFn}
+                  settings={learningSettings}
+                  algorithmName={ALGORITHM_REGISTRY[learningAlgo]?.name}
+                />
+                <AlgorithmInfo theme={theme} />
+                <BubbleChart theme={theme} />
+              </Suspense>
             </div>
-            <NDLTable
-              algorithmFn={learningAlgoFn}
-              settings={learningSettings}
-              algorithmName={ALGORITHM_REGISTRY[learningAlgo]?.name}
-            />
-            <AlgorithmInfo theme={theme} />
-            <BubbleChart theme={theme} />
-          </div>
+          </ErrorBoundary>
         ) : (
-          /* Single / Compare Mode */
           <>
-            {/* 1. Dive Stops */}
             <div className="shared-controls">
-              <DiveStops stops={stops} onStopsChange={setStops} />
+              <MemoizedDiveStops stops={stops} onStopsChange={setStops} />
             </div>
 
-            {/* 2. Algorithm Settings */}
             <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
               <div className="algorithm-panel panel-a">
                 {compareMode && <div className="panel-header"><span className="panel-label">Algorithm A</span></div>}
-                <DiveSettings
-                  settings={settingsA}
-                  onChange={(key, value) => setA(key, value)}
-                  color="#4fc3f7"
-                />
+                <ErrorBoundary section="Settings">
+                  <MemoizedDiveSettings
+                    settings={settingsA}
+                    onChange={(key, value) => setA(key, value)}
+                    color="#4fc3f7"
+                  />
+                </ErrorBoundary>
               </div>
               {compareMode && (
                 <div className="algorithm-panel panel-b">
                   <div className="panel-header"><span className="panel-label">Algorithm B</span></div>
-                  <DiveSettings
-                    settings={settingsB}
-                    onChange={(key, value) => setB(key, value)}
-                    color="#ff9800"
-                  />
+                  <ErrorBoundary section="Settings B">
+                    <MemoizedDiveSettings
+                      settings={settingsB}
+                      onChange={(key, value) => setB(key, value)}
+                      color="#ff9800"
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
             </div>
 
-            {/* 3. Graph */}
-            <div className="chart-panel">
-              {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
-              <DiveChart 
+            <ErrorBoundary section="Chart">
+              <div className="chart-panel">
+                {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
+                <MemoizedDiveChart 
+                  theme={theme}
+                  profiles={compareMode ? [
+                    { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
+                    { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
+                  ] : [
+                    { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
+                  ]}
+                  modLines={modLines}
+                  ceilingLines={ceilingLines}
+                />
+              </div>
+            </ErrorBoundary>
+
+            <ErrorBoundary section="Tissue Chart">
+              <MemoizedTissueChart
+                decoInfoA={resultA?.decoInfo}
+                decoInfoB={resultB?.decoInfo}
+                compareMode={compareMode}
                 theme={theme}
-                profiles={compareMode ? [
-                  { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
-                  { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
-                ] : [
-                  { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
-                ]}
-                modLines={modLines}
-                ceilingLines={ceilingLines}
               />
-            </div>
+            </ErrorBoundary>
 
-            {/* 3b. Tissue Chart */}
-            <TissueChart
-              decoInfoA={resultA?.decoInfo}
-              decoInfoB={resultB?.decoInfo}
-              compareMode={compareMode}
-              theme={theme}
-            />
+            <ErrorBoundary section="GF Explorer">
+              <MemoizedGFExplorer settings={settingsA} profilePoints={resultA?.points} profilePhases={resultA?.phases} theme={theme} />
+            </ErrorBoundary>
 
-            {/* 3c. GF Explorer */}
-            <GFExplorer settings={settingsA} profilePoints={resultA?.points} profilePhases={resultA?.phases} theme={theme} />
-
-            {/* 4. Summary */}
+            {/* Summary */}
             <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
               <div className="algorithm-panel panel-a">
-                <DiveSummary
-                  stops={stops} totalTime={resultA?.totalTime || 0}
-                  decoInfo={resultA?.decoInfo} color="#4fc3f7"
-                  compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
-                  modViolation={modViolationA}
-                  mod={settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : null}
-                />
-              </div>
-              {compareMode && (
-                <div className="algorithm-panel panel-b">
-                  <DiveSummary
-                    stops={stops} totalTime={resultB?.totalTime || 0}
-                    decoInfo={resultB?.decoInfo} color="#ff9800"
-                    compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
-                    modViolation={modViolationB}
-                    mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
+                <ErrorBoundary section="Summary">
+                  <MemoizedDiveSummary
+                    stops={stops} totalTime={resultA?.totalTime || 0}
+                    decoInfo={resultA?.decoInfo} color="#4fc3f7"
+                    compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
+                    modViolation={modViolationA}
+                    mod={settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : null}
+                    o2Data={o2DataA}
+                    gasData={gasDataA}
+                    ndl={ndlA}
+                    settings={settingsA}
                   />
+                </ErrorBoundary>
+              </div>
+              {compareMode && (
+                <div className="algorithm-panel panel-b">
+                  <ErrorBoundary section="Summary B">
+                    <MemoizedDiveSummary
+                      stops={stops} totalTime={resultB?.totalTime || 0}
+                      decoInfo={resultB?.decoInfo} color="#ff9800"
+                      compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
+                      modViolation={modViolationB}
+                      mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
+                      o2Data={o2DataB}
+                      gasData={gasDataB}
+                      settings={settingsB}
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
             </div>
 
-            {/* 4b. Supersaturation */}
+            {/* Supersaturation */}
             <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
               <div className="algorithm-panel panel-a">
-                <SupersatDisplay
-                  decoInfo={resultA?.decoInfo}
-                  profilePoints={resultA?.points}
-                  profilePhases={resultA?.phases}
-                  settings={settingsA}
-                  label={compareMode ? 'A' : ''}
-                  color="#4fc3f7"
-                />
-              </div>
-              {compareMode && (
-                <div className="algorithm-panel panel-b">
-                  <SupersatDisplay
-                    decoInfo={resultB?.decoInfo}
-                    profilePoints={resultB?.points}
-                    profilePhases={resultB?.phases}
-                    settings={settingsB}
-                    label="B"
-                    color="#ff9800"
+                <ErrorBoundary section="Supersaturation">
+                  <MemoizedSupersatDisplay
+                    decoInfo={resultA?.decoInfo}
+                    profilePoints={resultA?.points}
+                    profilePhases={resultA?.phases}
+                    settings={settingsA}
+                    label={compareMode ? 'A' : ''}
+                    color="#4fc3f7"
                   />
-                </div>
-              )}
-            </div>
-
-            {/* 5. Dive Plan */}
-            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-              <div className="algorithm-panel panel-a">
-                <DiveTable phases={resultA?.phases || []} color="#4fc3f7" />
+                </ErrorBoundary>
               </div>
               {compareMode && (
                 <div className="algorithm-panel panel-b">
-                  <DiveTable phases={resultB?.phases || []} color="#ff9800" />
+                  <ErrorBoundary section="Supersaturation B">
+                    <MemoizedSupersatDisplay
+                      decoInfo={resultB?.decoInfo}
+                      profilePoints={resultB?.points}
+                      profilePhases={resultB?.phases}
+                      settings={settingsB}
+                      label="B"
+                      color="#ff9800"
+                    />
+                  </ErrorBoundary>
                 </div>
               )}
             </div>
 
-            {/* 6. Share */}
+            {/* Dive Plan */}
+            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+              <div className="algorithm-panel panel-a">
+                <ErrorBoundary section="Dive Plan">
+                  <MemoizedDiveTable phases={resultA?.phases || []} color="#4fc3f7" settings={settingsA} />
+                </ErrorBoundary>
+              </div>
+              {compareMode && (
+                <div className="algorithm-panel panel-b">
+                  <ErrorBoundary section="Dive Plan B">
+                    <MemoizedDiveTable phases={resultB?.phases || []} color="#ff9800" settings={settingsB} />
+                  </ErrorBoundary>
+                </div>
+              )}
+            </div>
+
             <ShareLink />
           </>
         )}

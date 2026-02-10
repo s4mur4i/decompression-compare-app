@@ -21,23 +21,51 @@ const COMPARTMENT_COLORS = [
 ];
 
 /**
+ * Build a gas timeline from dive phases: [{startTime, fO2, fHe, fN2}]
+ */
+function buildGasTimeline(phases, defaultFO2, defaultFHe) {
+  if (!phases || phases.length === 0) return [{ startTime: 0, fO2: defaultFO2, fHe: defaultFHe, fN2: 1 - defaultFO2 - defaultFHe }];
+  const timeline = [];
+  let currentFO2 = defaultFO2, currentFHe = defaultFHe;
+  let runTime = 0;
+  for (const phase of phases) {
+    if (phase.gas) {
+      const parts = phase.gas.split('/');
+      currentFO2 = parseInt(parts[0]) / 100;
+      currentFHe = parts.length > 1 ? parseInt(parts[1]) / 100 : 0;
+    }
+    timeline.push({ startTime: runTime, fO2: currentFO2, fHe: currentFHe, fN2: 1 - currentFO2 - currentFHe });
+    runTime += phase.duration;
+  }
+  return timeline;
+}
+
+function getGasAtTime(timeline, t) {
+  let gas = timeline[0];
+  for (const g of timeline) {
+    if (g.startTime <= t) gas = g;
+    else break;
+  }
+  return gas;
+}
+
+/**
  * Simulate tissue loading trajectory through a dive profile.
+ * Accounts for gas switches during deco.
  * Returns per-compartment arrays of { pAmb, pTissue } points.
  */
-function simulateTissueTrajectory(profilePoints, settings, paramSet) {
+function simulateTissueTrajectory(profilePoints, phases, settings, paramSet) {
   if (!profilePoints || profilePoints.length < 2) return null;
 
   const { fO2 = 0.21, fHe = 0 } = settings;
-  const fN2 = 1 - fO2 - fHe;
-  const hasHe = fHe > 0;
   const nc = paramSet.compartments;
+  const gasTimeline = buildGasTimeline(phases, fO2, fHe);
 
-  const n2 = new Array(nc).fill(inspiredPressure(0, fN2));
-  const he = hasHe ? new Array(nc).fill(0) : null;
+  const initGas = gasTimeline[0];
+  const n2 = new Array(nc).fill(inspiredPressure(0, initGas.fN2));
+  const he = new Array(nc).fill(0);
 
-  // Store trajectory points per compartment
   const trajectories = Array.from({ length: nc }, () => []);
-
   const maxTime = profilePoints[profilePoints.length - 1].time;
 
   function depthAt(t) {
@@ -56,29 +84,27 @@ function simulateTissueTrajectory(profilePoints, settings, paramSet) {
   for (let t = 0; t <= maxTime; t++) {
     const depth = depthAt(t);
     const pAmb = P_SURFACE + depth / 10;
+    const gas = getGasAtTime(gasTimeline, t);
 
     if (t > 0) {
-      const piN2 = inspiredPressure(depth, fN2);
-      const piHe = hasHe ? inspiredPressure(depth, fHe) : 0;
+      const piN2 = inspiredPressure(depth, gas.fN2);
+      const piHe = inspiredPressure(depth, gas.fHe);
       for (let i = 0; i < nc; i++) {
         n2[i] = schreiner(n2[i], piN2, 1, paramSet.halfTimes[i]);
-        if (hasHe) {
-          const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
-          he[i] = schreiner(he[i], piHe, 1, paramSet.heHalfTimes[heIdx]);
-        }
+        const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+        he[i] = schreiner(he[i], piHe, 1, paramSet.heHalfTimes[heIdx]);
       }
     }
 
     for (let i = 0; i < nc; i++) {
-      const pTissue = n2[i] + (he ? he[i] : 0);
-      trajectories[i].push({ x: pAmb, y: pTissue });
+      trajectories[i].push({ x: pAmb, y: n2[i] + he[i] });
     }
   }
 
   return trajectories;
 }
 
-export default function GFExplorer({ settings, profilePoints, theme = 'dark' }) {
+export default function GFExplorer({ settings, profilePoints, profilePhases, theme = 'dark' }) {
   const [collapsed, setCollapsed] = useState(true);
   const [showExplanation, setShowExplanation] = useState(false);
   const [selectedCompartments, setSelectedCompartments] = useState([0, 3, 7, 11, 15]);
@@ -103,8 +129,8 @@ export default function GFExplorer({ settings, profilePoints, theme = 'dark' }) 
   // Compute tissue trajectories from profile points
   const trajectories = useMemo(() => {
     if (!isBuhlmann || !paramSet || !profilePoints || profilePoints.length < 2) return null;
-    return simulateTissueTrajectory(profilePoints, settings, paramSet);
-  }, [profilePoints, settings, isBuhlmann, paramSet]);
+    return simulateTissueTrajectory(profilePoints, profilePhases, settings, paramSet);
+  }, [profilePoints, profilePhases, settings, isBuhlmann, paramSet]);
 
   const datasets = useMemo(() => {
     if (!isBuhlmann || !paramSet) return [];

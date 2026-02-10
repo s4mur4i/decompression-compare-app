@@ -398,7 +398,7 @@ function App() {
             />
 
             {/* 3c. GF Explorer */}
-            <GFExplorer settings={settingsA} profilePoints={resultA?.points} theme={theme} />
+            <GFExplorer settings={settingsA} profilePoints={resultA?.points} profilePhases={resultA?.phases} theme={theme} />
 
             {/* 4. Summary */}
             <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
@@ -430,6 +430,7 @@ function App() {
                 <SupersatDisplay
                   decoInfo={resultA?.decoInfo}
                   profilePoints={resultA?.points}
+                  profilePhases={resultA?.phases}
                   settings={settingsA}
                   label={compareMode ? 'A' : ''}
                   color="#4fc3f7"
@@ -440,6 +441,7 @@ function App() {
                   <SupersatDisplay
                     decoInfo={resultB?.decoInfo}
                     profilePoints={resultB?.points}
+                    profilePhases={resultB?.phases}
                     settings={settingsB}
                     label="B"
                     color="#ff9800"

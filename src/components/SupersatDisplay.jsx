@@ -18,10 +18,39 @@ function getSatLabel(pct) {
 }
 
 /**
- * Calculate post-deco tissue state by simulating the full dive profile.
- * This gives accurate surface supersaturation AFTER all deco stops.
+ * Build a gas timeline from dive phases: [{startTime, fO2, fHe, fN2}]
  */
-function calculatePostDecoTissueState(profilePoints, settings) {
+function buildGasTimeline(phases, defaultFO2, defaultFHe) {
+  if (!phases || phases.length === 0) return [{ startTime: 0, fO2: defaultFO2, fHe: defaultFHe, fN2: 1 - defaultFO2 - defaultFHe }];
+  const timeline = [];
+  let currentFO2 = defaultFO2, currentFHe = defaultFHe;
+  let runTime = 0;
+  for (const phase of phases) {
+    if (phase.gas) {
+      const parts = phase.gas.split('/');
+      currentFO2 = parseInt(parts[0]) / 100;
+      currentFHe = parts.length > 1 ? parseInt(parts[1]) / 100 : 0;
+    }
+    timeline.push({ startTime: runTime, fO2: currentFO2, fHe: currentFHe, fN2: 1 - currentFO2 - currentFHe });
+    runTime += phase.duration;
+  }
+  return timeline;
+}
+
+function getGasAtTime(timeline, t) {
+  let gas = timeline[0];
+  for (const g of timeline) {
+    if (g.startTime <= t) gas = g;
+    else break;
+  }
+  return gas;
+}
+
+/**
+ * Calculate post-deco tissue state by simulating the full dive profile.
+ * Accounts for gas switches during deco stops.
+ */
+function calculatePostDecoTissueState(profilePoints, profilePhases, settings) {
   if (!profilePoints || profilePoints.length < 2 || !settings) return null;
 
   const { algorithm, fO2 = 0.21, fHe = 0 } = settings;
@@ -31,11 +60,11 @@ function calculatePostDecoTissueState(profilePoints, settings) {
   if (!paramSet) return null;
 
   const nc = paramSet.compartments;
-  const fN2 = 1 - fO2 - fHe;
-  const hasHe = fHe > 0;
+  const gasTimeline = buildGasTimeline(profilePhases, fO2, fHe);
+  const initGas = gasTimeline[0];
 
-  const n2 = new Array(nc).fill(inspiredPressure(0, fN2));
-  const he = hasHe ? new Array(nc).fill(0) : null;
+  const n2 = new Array(nc).fill(inspiredPressure(0, initGas.fN2));
+  const he = new Array(nc).fill(0);
 
   const maxTime = profilePoints[profilePoints.length - 1].time;
 
@@ -52,46 +81,39 @@ function calculatePostDecoTissueState(profilePoints, settings) {
     return profilePoints[profilePoints.length - 1].depth;
   }
 
-  // Simulate minute by minute through the FULL profile (including deco stops)
   for (let t = 1; t <= maxTime; t++) {
     const depth = depthAt(t);
-    // TODO: For multi-gas, we'd need to track gas switches. For now use bottom gas.
-    const piN2 = inspiredPressure(depth, fN2);
-    const piHe = hasHe ? inspiredPressure(depth, fHe) : 0;
+    const gas = getGasAtTime(gasTimeline, t);
+    const piN2 = inspiredPressure(depth, gas.fN2);
+    const piHe = inspiredPressure(depth, gas.fHe);
     for (let i = 0; i < nc; i++) {
       n2[i] = schreiner(n2[i], piN2, 1, paramSet.halfTimes[i]);
-      if (hasHe) {
-        const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
-        he[i] = schreiner(he[i], piHe, 1, paramSet.heHalfTimes[heIdx]);
-      }
+      const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+      he[i] = schreiner(he[i], piHe, 1, paramSet.heHalfTimes[heIdx]);
     }
   }
 
-  // Calculate M-values at surface
+  // Use RAW M-values (not GF-adjusted) — shows % of actual physical limit
   const mValues = [];
   for (let i = 0; i < nc; i++) {
-    // Use GF-adjusted M-values
-    const gfHigh = (settings.gfHigh || 70) / 100;
     const a = paramSet.aValues[i];
     const b = paramSet.bValues[i];
-    const M_raw = a + P_SURFACE / b;
-    const M_gf = P_SURFACE + (M_raw - P_SURFACE) * gfHigh;
-    mValues.push(M_gf);
+    mValues.push(a + P_SURFACE / b);
   }
 
   return { n2, he, mValues, nc };
 }
 
-export default function SupersatDisplay({ decoInfo, profilePoints, settings, label, color = '#4fc3f7' }) {
+export default function SupersatDisplay({ decoInfo, profilePoints, profilePhases, settings, label, color = '#4fc3f7' }) {
   const [showExplanation, setShowExplanation] = useState(false);
 
   // Use post-deco tissue state if we have profile points, otherwise fall back to decoInfo
   const postDecoState = useMemo(() => {
     if (profilePoints && settings && settings.algorithm !== 'none') {
-      return calculatePostDecoTissueState(profilePoints, settings);
+      return calculatePostDecoTissueState(profilePoints, profilePhases, settings);
     }
     return null;
-  }, [profilePoints, settings]);
+  }, [profilePoints, profilePhases, settings]);
 
   // Determine which data to use
   const tissueData = useMemo(() => {
@@ -146,9 +168,9 @@ export default function SupersatDisplay({ decoInfo, profilePoints, settings, lab
       </div>
       {showExplanation && (
         <p className="chart-explanation" style={{ margin: '8px 0' }}>
-          How much dissolved gas remains in each tissue when you reach the surface {postDecoState ? 'after completing all deco stops' : ''}. 
-          0% = fully offgassed, 100% = at the {postDecoState ? 'GF-adjusted ' : ''}M-value limit. 
-          Staying below ~80% across all tissues means a safe surface interval.
+          How much dissolved gas remains in each tissue when you reach the surface{postDecoState ? ' after completing all deco stops' : ''}. 
+          0% = ambient equilibrium, 100% = at the absolute M-value limit (DCS risk). 
+          Values above ~70% indicate the tissue is still significantly loaded. Your GF setting provides additional safety margin below 100%.
         </p>
       )}
       <div className="supersat-summary">

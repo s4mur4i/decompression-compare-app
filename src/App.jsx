@@ -74,6 +74,7 @@ const ALGORITHM_REGISTRY = {
 function App() {
   const [stops, setStops] = useState([]);
   const [compareMode, setCompareMode] = useState(false);
+  const [showLearning, setShowLearning] = useState(false);
   const [settingsA, dispatchA] = useReducer(settingsReducer, DEFAULT_SETTINGS);
   const [settingsB, dispatchB] = useReducer(settingsReducer, { ...DEFAULT_SETTINGS, algorithm: 'zhl16c' });
   const [initialized, setInitialized] = useState(false);
@@ -408,21 +409,26 @@ function App() {
           )}
         </div>
 
-        {/* 6. Algorithm Deep Dive */}
-        <AlgorithmInfo theme={theme} />
-
-        {/* 7. Bubble Mechanics */}
-        <BubbleChart theme={theme} />
-
-        {/* 8. NDL Table */}
-        <NDLTable
-          algorithmFn={ALGORITHM_REGISTRY[settingsA.algorithm]?.fn}
-          settings={settingsA}
-          algorithmName={ALGORITHM_REGISTRY[settingsA.algorithm]?.name}
-        />
-
-        {/* 9. Share */}
+        {/* 6. Share */}
         <ShareLink />
+
+        {/* 7. Learning Tab */}
+        <div className="learning-section">
+          <button className="learning-tab-btn" onClick={() => setShowLearning(prev => !prev)}>
+            {showLearning ? '▼' : '▶'} 📚 Learning Center
+          </button>
+          {showLearning && (
+            <div className="learning-content">
+              <NDLTable
+                algorithmFn={ALGORITHM_REGISTRY[settingsA.algorithm]?.fn}
+                settings={settingsA}
+                algorithmName={ALGORITHM_REGISTRY[settingsA.algorithm]?.name}
+              />
+              <AlgorithmInfo theme={theme} />
+              <BubbleChart theme={theme} />
+            </div>
+          )}
+        </div>
       </main>
 
       <footer className="app-footer">

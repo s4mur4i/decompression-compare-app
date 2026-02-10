@@ -34,9 +34,13 @@ export default function SupersatDisplay({ decoInfo, label, color = '#4fc3f7' }) 
 
   return (
     <div className="supersat-display" style={{ borderColor: `${color}40` }}>
-      <h4 style={{ color, margin: '0 0 8px 0', fontSize: '0.85rem' }}>
+      <h4 style={{ color, margin: '0 0 4px 0', fontSize: '0.85rem' }}>
         {label ? `${label} ` : ''}Supersaturation at Surface
       </h4>
+      <p className="chart-explanation" style={{ margin: '0 0 8px 0' }}>
+        How much dissolved gas remains in each tissue when you reach the surface. 
+        0% = fully offgassed, 100% = at the M-value limit. Staying below ~80% across all tissues means a safe surface interval.
+      </p>
       <div className="supersat-summary">
         <span>Max: <strong style={{ color: getSatColor(maxSat) }}>{maxSat.toFixed(1)}%</strong> (TC{maxIdx + 1})</span>
         <span className="supersat-status" style={{ color: getSatColor(maxSat) }}>{getSatLabel(maxSat)}</span>

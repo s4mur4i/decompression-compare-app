@@ -136,13 +136,21 @@ export default function TissueChart({ decoInfoA, decoInfoB, compareMode, theme =
         <span className="collapsible-hint">{nc} compartments</span>
       </button>
       {!collapsed && (
-        <div className="tissue-chart-container" style={{ height: '300px' }}>
-          <Bar data={data} options={options} />
+        <div className="tissue-chart-container">
+          <p className="chart-explanation">
+            Each bar represents a tissue compartment in your body (fast tissues like blood on the left, slow tissues like fat on the right). 
+            The bar height shows how much dissolved gas (nitrogen/helium) is in that tissue. 
+            The red dashed line is the <strong>M-value</strong> — the maximum safe gas loading. 
+            Green = safe, yellow = getting close, red = near the limit.
+          </p>
+          <div style={{ height: '280px' }}>
+            <Bar data={data} options={options} />
+          </div>
           <div className="tissue-legend">
             <span className="tissue-legend-item"><span className="legend-dot" style={{ background: 'rgba(76,175,80,0.7)' }} /> Safe</span>
-            <span className="tissue-legend-item"><span className="legend-dot" style={{ background: 'rgba(255,193,7,0.8)' }} /> Approaching</span>
+            <span className="tissue-legend-item"><span className="legend-dot" style={{ background: 'rgba(255,193,7,0.8)' }} /> Approaching limit</span>
             <span className="tissue-legend-item"><span className="legend-dot" style={{ background: 'rgba(244,67,54,0.8)' }} /> Near M-value</span>
-            <span className="tissue-legend-item"><span className="legend-dot" style={{ background: 'rgba(244,67,54,0.9)', width: '16px', height: '2px', borderRadius: 0 }} /> M-value line</span>
+            <span className="tissue-legend-item"><span className="legend-dot" style={{ background: 'rgba(244,67,54,0.9)', width: '16px', height: '2px', borderRadius: 0 }} /> M-value (max safe)</span>
           </div>
         </div>
       )}

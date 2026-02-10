@@ -144,6 +144,14 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
       </button>
       {!collapsed && (
         <div style={{ padding: '12px 16px' }}>
+          <p className="chart-explanation">
+            This graph shows how <strong>Gradient Factors</strong> limit your ascent. 
+            The solid colored lines are M-values — the absolute maximum gas pressure each tissue can tolerate at a given depth. 
+            The dashed lines show your GF-adjusted limits (GF {gfLow}/{gfHigh}) — the actual ceiling your dive computer enforces. 
+            The white dashed line is ambient pressure. You must stay <em>below</em> the dashed colored lines during ascent. 
+            Lower GF = more conservative = the dashed lines move closer to ambient = longer deco.
+            Click compartment numbers below to show/hide individual tissues.
+          </p>
           <div className="gf-compartment-selector">
             {Array.from({ length: nc }, (_, i) => (
               <button
@@ -159,9 +167,7 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
           <div style={{ height: '350px' }}>
             <Line data={data} options={options} />
           </div>
-          <div className="gf-explanation">
-            <p>Solid lines = M-value (maximum tolerated pressure). Dashed = GF-adjusted limit. Area between dashed and ambient = the GF envelope.</p>
-          </div>
+          {/* explanation moved above chart */}
         </div>
       )}
     </div>

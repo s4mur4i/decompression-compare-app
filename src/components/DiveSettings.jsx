@@ -193,13 +193,24 @@ export default function DiveSettings({
                   Stage 1
                 </label>
                 {decoGas1 && (
-                  <div className="rate-input">
-                    <NumInput value={Math.round(decoGas1.fO2 * 100)} min={21} max={100}
-                      onChange={(v) => onChange("decoGas1", { fO2: (typeof v === "number" ? v : 50) / 100 })}
-                      onBlur={(v) => onChange("decoGas1", { fO2: v / 100 })} />
-                    <span>% O₂</span>
-                    <span className="deco-gas-mod">MOD {decoGas1MOD}m</span>
-                  </div>
+                  <>
+                    <div className="rate-input">
+                      <NumInput value={Math.round(decoGas1.fO2 * 100)} min={21} max={100}
+                        onChange={(v) => onChange("decoGas1", { fO2: (typeof v === "number" ? v : 50) / 100 })}
+                        onBlur={(v) => onChange("decoGas1", { fO2: v / 100 })} />
+                      <span>% O₂</span>
+                      <span className="deco-gas-mod">MOD {decoGas1MOD}m</span>
+                    </div>
+                    <div className="gas-presets">
+                      {[50, 80, 100].map(pct => (
+                        <button key={pct} type="button"
+                          className={`gas-preset-btn${Math.round(decoGas1.fO2 * 100) === pct ? ' active' : ''}`}
+                          onClick={() => onChange("decoGas1", { fO2: pct / 100 })}>
+                          {pct === 100 ? 'O₂' : `EAN${pct}`}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -211,13 +222,24 @@ export default function DiveSettings({
                   Stage 2
                 </label>
                 {decoGas2 && (
-                  <div className="rate-input">
-                    <NumInput value={Math.round(decoGas2.fO2 * 100)} min={21} max={100}
-                      onChange={(v) => onChange("decoGas2", { fO2: (typeof v === "number" ? v : 100) / 100 })}
-                      onBlur={(v) => onChange("decoGas2", { fO2: v / 100 })} />
-                    <span>% O₂</span>
-                    <span className="deco-gas-mod">MOD {decoGas2MOD}m</span>
-                  </div>
+                  <>
+                    <div className="rate-input">
+                      <NumInput value={Math.round(decoGas2.fO2 * 100)} min={21} max={100}
+                        onChange={(v) => onChange("decoGas2", { fO2: (typeof v === "number" ? v : 100) / 100 })}
+                        onBlur={(v) => onChange("decoGas2", { fO2: v / 100 })} />
+                      <span>% O₂</span>
+                      <span className="deco-gas-mod">MOD {decoGas2MOD}m</span>
+                    </div>
+                    <div className="gas-presets">
+                      {[50, 80, 100].map(pct => (
+                        <button key={pct} type="button"
+                          className={`gas-preset-btn${Math.round(decoGas2.fO2 * 100) === pct ? ' active' : ''}`}
+                          onClick={() => onChange("decoGas2", { fO2: pct / 100 })}>
+                          {pct === 100 ? 'O₂' : `EAN${pct}`}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
               {(decoGas1 || decoGas2) && (

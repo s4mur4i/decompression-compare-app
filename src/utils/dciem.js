@@ -123,7 +123,7 @@ function canAscendDCIEM(tissueLoading, newDepth) {
  * @returns {Object} Deco stops and tissue data
  */
 export function calculateDCIEM(phases, options = {}) {
-  const { fO2 = 0.21, ascentRate = 9 } = options;
+  const { fO2 = 0.21, ascentRate = 9, lastStopDepth = 6 } = options;
   const fN2 = 1.0 - fO2;
   
   // Initialize tissue loading at surface equilibrium
@@ -163,7 +163,7 @@ export function calculateDCIEM(phases, options = {}) {
   if (firstStopDepth > 0) {
     let currentStop = firstStopDepth;
     
-    while (currentStop >= 3) {
+    while (currentStop >= lastStopDepth) {
       let stopTime = 0;
       const tempTissue = [...workingTissue];
       

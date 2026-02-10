@@ -32,6 +32,7 @@ export default function DiveSettings({
     algorithm, fO2, fHe = 0, gfLow, gfHigh,
     descentRate, ascentRate, ppO2Max = 1.4, ppO2Deco = 1.6,
     decoGas1 = null, decoGas2 = null, gasSwitchTime = true,
+    lastStopDepth = 6,
   } = settings;
 
   const set = (key) => (value) => onChange(key, value);
@@ -76,6 +77,16 @@ export default function DiveSettings({
             onChange={set("ascentRate")}
             onBlur={set("ascentRate")} />
           <span>m/min</span>
+        </div>
+      </div>
+
+      <div className="setting-row">
+        <label>Last Stop</label>
+        <div className="gas-presets">
+          <button type="button" className={`gas-preset-btn${lastStopDepth === 3 ? ' active' : ''}`}
+            onClick={() => onChange('lastStopDepth', 3)}>3m</button>
+          <button type="button" className={`gas-preset-btn${lastStopDepth === 6 ? ' active' : ''}`}
+            onClick={() => onChange('lastStopDepth', 6)}>6m</button>
         </div>
       </div>
 

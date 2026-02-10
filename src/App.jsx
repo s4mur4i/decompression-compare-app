@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS = {
   decoGas1: null,
   decoGas2: null,
   gasSwitchTime: true,
+  lastStopDepth: 6,
 };
 
 function settingsReducer(state, action) {
@@ -95,7 +96,7 @@ function App() {
     }
     gasSwitches.sort((a, b) => b.depth - a.depth);
 
-    const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, gasSwitches };
+    const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, gasSwitches, lastStopDepth: settings.lastStopDepth || 6 };
     const entry = ALGORITHM_REGISTRY[algorithm];
     if (!entry || !entry.fn) return null;
     return entry.fn(phases, opts);
@@ -134,6 +135,7 @@ function App() {
     if (get('s1')) s.decoGas1 = { fO2: Number(get('s1')) / 100 };
     if (get('s2')) s.decoGas2 = { fO2: Number(get('s2')) / 100 };
     if (get('gst') === '0') s.gasSwitchTime = false;
+    if (get('lsd')) s.lastStopDepth = Number(get('lsd'));
     return s;
   };
 
@@ -168,6 +170,7 @@ function App() {
     if (settings.decoGas1) set('s1', Math.round(settings.decoGas1.fO2 * 100));
     if (settings.decoGas2) set('s2', Math.round(settings.decoGas2.fO2 * 100));
     if (!settings.gasSwitchTime) set('gst', '0');
+    if (settings.lastStopDepth !== def.lastStopDepth) set('lsd', settings.lastStopDepth);
   };
 
   // URL sync

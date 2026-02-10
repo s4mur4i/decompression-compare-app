@@ -26,20 +26,17 @@ function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
 }
 
 export default function DiveSettings({
-  algorithm, onAlgorithmChange,
-  fO2, onFO2Change,
-  fHe = 0, onFHeChange,
-  gfLow, onGfLowChange,
-  gfHigh, onGfHighChange,
-  descentRate, onDescentRateChange,
-  ascentRate, onAscentRateChange,
-  ppO2Max = 1.4, onPpO2MaxChange,
-  ppO2Deco = 1.6, onPpO2DecoChange,
-  decoGas1 = null, onDecoGas1Change,
-  decoGas2 = null, onDecoGas2Change,
-  gasSwitchTime = true, onGasSwitchTimeChange,
+  settings,
+  onChange,
   color = '#4fc3f7',
 }) {
+  const {
+    algorithm, fO2, fHe = 0, gfLow, gfHigh,
+    descentRate, ascentRate, ppO2Max = 1.4, ppO2Deco = 1.6,
+    decoGas1 = null, decoGas2 = null, gasSwitchTime = true,
+  } = settings;
+
+  const set = (key) => (value) => onChange(key, value);
   const algo = ALGORITHMS[algorithm] || {};
   const supportsTrimix = algo.trimix;
   const supportsMultiGas = algo.multiGas;
@@ -57,7 +54,7 @@ export default function DiveSettings({
       
       <div className="setting-row">
         <label>Algorithm</label>
-        <select value={algorithm} onChange={(e) => onAlgorithmChange(e.target.value)} className="algo-select">
+        <select value={algorithm} onChange={(e) => onChange("algorithm", e.target.value)} className="algo-select">
           {Object.entries(ALGORITHMS).map(([key, a]) => (
             <option key={key} value={key}>{a.name}</option>
           ))}
@@ -68,8 +65,8 @@ export default function DiveSettings({
         <label>Descent Rate</label>
         <div className="rate-input">
           <NumInput value={descentRate} min={1} max={30}
-            onChange={(v) => onDescentRateChange(v)}
-            onBlur={(v) => onDescentRateChange(v)} />
+            onChange={set("descentRate")}
+            onBlur={set("descentRate")} />
           <span>m/min</span>
         </div>
       </div>
@@ -78,8 +75,8 @@ export default function DiveSettings({
         <label>Ascent Rate</label>
         <div className="rate-input">
           <NumInput value={ascentRate} min={1} max={30}
-            onChange={(v) => onAscentRateChange(v)}
-            onBlur={(v) => onAscentRateChange(v)} />
+            onChange={set("ascentRate")}
+            onBlur={set("ascentRate")} />
           <span>m/min</span>
         </div>
       </div>
@@ -94,24 +91,24 @@ export default function DiveSettings({
               <NumInput value={o2Pct} min={8} max={100}
                 onChange={(v) => {
                   const n = typeof v === 'number' ? v : 0;
-                  onFO2Change(n / 100);
-                  if (onFHeChange && (n + hePct) > 100) onFHeChange((100 - n) / 100);
+                  onChange('fO2', n / 100);
+                  if ((n + hePct) > 100) onChange('fHe', (100 - n) / 100);
                 }}
                 onBlur={(v) => {
-                  onFO2Change(v / 100);
-                  if (onFHeChange && (v + hePct) > 100) onFHeChange((100 - v) / 100);
+                  onChange('fO2', v / 100);
+                  if ((v + hePct) > 100) onChange('fHe', (100 - v) / 100);
                 }} />
               <span>%</span>
             </div>
           </div>
 
-          {supportsTrimix && onFHeChange && (
+          {supportsTrimix && (
             <div className="setting-row">
               <label>He %</label>
               <div className="rate-input">
                 <NumInput value={hePct} min={0} max={100 - o2Pct}
-                  onChange={(v) => onFHeChange((typeof v === 'number' ? v : 0) / 100)}
-                  onBlur={(v) => onFHeChange(v / 100)} />
+                  onChange={(v) => onChange('fHe', (typeof v === 'number' ? v : 0) / 100)}
+                  onBlur={(v) => onChange('fHe', v / 100)} />
                 <span>%</span>
               </div>
             </div>
@@ -130,8 +127,8 @@ export default function DiveSettings({
             <label>Bottom ppO₂</label>
             <div className="rate-input">
               <NumInput value={ppO2Max} min={1.0} max={1.4} step={0.1}
-                onChange={(v) => onPpO2MaxChange(typeof v === 'number' ? v : 1.6)}
-                onBlur={(v) => onPpO2MaxChange(v)} />
+                onChange={(v) => onChange('ppO2Max', typeof v === 'number' ? v : 1.6)}
+                onBlur={set('ppO2Max')} />
               <span>bar</span>
             </div>
           </div>
@@ -141,8 +138,8 @@ export default function DiveSettings({
               <label>Deco ppO₂</label>
               <div className="rate-input">
                 <NumInput value={ppO2Deco} min={1.0} max={1.6} step={0.1}
-                  onChange={(v) => onPpO2DecoChange(typeof v === 'number' ? v : 1.4)}
-                  onBlur={(v) => onPpO2DecoChange(v)} />
+                  onChange={(v) => onChange('ppO2Deco', typeof v === 'number' ? v : 1.4)}
+                  onBlur={set('ppO2Deco')} />
                 <span>bar</span>
               </div>
             </div>
@@ -154,8 +151,8 @@ export default function DiveSettings({
                 <label>GF Low</label>
                 <div className="rate-input">
                   <NumInput value={gfLow} min={10} max={100}
-                    onChange={(v) => onGfLowChange(v)}
-                    onBlur={(v) => onGfLowChange(v)} />
+                    onChange={set("gfLow")}
+                    onBlur={set("gfLow")} />
                   <span>%</span>
                 </div>
               </div>
@@ -164,8 +161,8 @@ export default function DiveSettings({
                 <label>GF High</label>
                 <div className="rate-input">
                   <NumInput value={gfHigh} min={10} max={100}
-                    onChange={(v) => onGfHighChange(v)}
-                    onBlur={(v) => onGfHighChange(v)} />
+                    onChange={set("gfHigh")}
+                    onBlur={set("gfHigh")} />
                   <span>%</span>
                 </div>
               </div>
@@ -181,14 +178,14 @@ export default function DiveSettings({
                 <label className="deco-gas-toggle">
                   <input type="checkbox"
                     checked={decoGas1 !== null}
-                    onChange={(e) => onDecoGas1Change(e.target.checked ? { fO2: 0.50 } : null)} />
+                    onChange={(e) => onChange("decoGas1", e.target.checked ? { fO2: 0.50 } : null)} />
                   Stage 1
                 </label>
                 {decoGas1 && (
                   <div className="rate-input">
                     <NumInput value={Math.round(decoGas1.fO2 * 100)} min={21} max={100}
-                      onChange={(v) => onDecoGas1Change({ fO2: (typeof v === 'number' ? v : 50) / 100 })}
-                      onBlur={(v) => onDecoGas1Change({ fO2: v / 100 })} />
+                      onChange={(v) => onChange("decoGas1", { fO2: (typeof v === "number" ? v : 50) / 100 })}
+                      onBlur={(v) => onChange("decoGas1", { fO2: v / 100 })} />
                     <span>% O₂</span>
                     <span className="deco-gas-mod">MOD {decoGas1MOD}m</span>
                   </div>
@@ -199,25 +196,25 @@ export default function DiveSettings({
                 <label className="deco-gas-toggle">
                   <input type="checkbox"
                     checked={decoGas2 !== null}
-                    onChange={(e) => onDecoGas2Change(e.target.checked ? { fO2: 1.0 } : null)} />
+                    onChange={(e) => onChange("decoGas2", e.target.checked ? { fO2: 1.0 } : null)} />
                   Stage 2
                 </label>
                 {decoGas2 && (
                   <div className="rate-input">
                     <NumInput value={Math.round(decoGas2.fO2 * 100)} min={21} max={100}
-                      onChange={(v) => onDecoGas2Change({ fO2: (typeof v === 'number' ? v : 100) / 100 })}
-                      onBlur={(v) => onDecoGas2Change({ fO2: v / 100 })} />
+                      onChange={(v) => onChange("decoGas2", { fO2: (typeof v === "number" ? v : 100) / 100 })}
+                      onBlur={(v) => onChange("decoGas2", { fO2: v / 100 })} />
                     <span>% O₂</span>
                     <span className="deco-gas-mod">MOD {decoGas2MOD}m</span>
                   </div>
                 )}
               </div>
-              {(decoGas1 || decoGas2) && onGasSwitchTimeChange && (
+              {(decoGas1 || decoGas2) && (
                 <div className="deco-gas-row" style={{ marginTop: '8px' }}>
                   <label className="deco-gas-toggle">
                     <input type="checkbox"
                       checked={gasSwitchTime}
-                      onChange={(e) => onGasSwitchTimeChange(e.target.checked)} />
+                      onChange={(e) => onChange("gasSwitchTime", e.target.checked)} />
                     +1 min gas switch
                   </label>
                 </div>

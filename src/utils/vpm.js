@@ -17,7 +17,8 @@ const HALFTIMES = [
   109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0
 ];
 
-import { P_SURFACE, P_WATER_VAPOR, GAMMA, GAMMA_C, LAMBDA_N2 } from './constants.js';
+import { P_SURFACE, GAMMA, GAMMA_C, LAMBDA_N2 } from './constants.js';
+import { depthToPressure, pressureToDepth, inspiredPressure, schreiner } from './physics.js';
 
 // Initial critical nucleus radii at surface (meters)
 // These are per-compartment, derived from empirical fitting
@@ -27,24 +28,6 @@ const R0_N2 = [
   1.30e-6, 1.20e-6, 1.10e-6, 1.00e-6, 0.95e-6, 0.90e-6, 0.85e-6, 0.80e-6,
   0.75e-6, 0.72e-6, 0.70e-6, 0.68e-6, 0.66e-6, 0.64e-6, 0.62e-6, 0.60e-6
 ];
-
-function depthToPressure(depth) {
-  return P_SURFACE + depth / 10.0;
-}
-
-function pressureToDepth(pressure) {
-  return Math.max(0, (pressure - P_SURFACE) * 10.0);
-}
-
-function inspiredPressure(depth, fGas) {
-  return (depthToPressure(depth) - P_WATER_VAPOR) * fGas;
-}
-
-function schreiner(p0, pi, time, halfTime) {
-  if (time <= 0) return p0;
-  const k = Math.LN2 / halfTime;
-  return p0 + (pi - p0) * (1 - Math.exp(-k * time));
-}
 
 /**
  * Calculate the initial allowable supersaturation gradient for each compartment.

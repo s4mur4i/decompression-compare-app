@@ -15,31 +15,8 @@ const DCIEM_COMPARTMENTS = [
   [480.0, 1.4]  // Compartment 4 - Very slow perfusion (bone, cartilage)
 ];
 
-import { P_WATER_VAPOR as WATER_VAPOR_PRESSURE, P_SURFACE as SURFACE_PRESSURE, DCIEM_ASCENT_PENALTY, DCIEM_SAFETY_FACTOR } from './constants.js';
-
-/**
- * Convert depth in meters to absolute pressure in bar (saltwater).
- */
-function depthToPressure(depth) {
-  return SURFACE_PRESSURE + (depth / 10.0);
-}
-
-/**
- * Calculate inspired gas pressure at given depth.
- */
-function inspiredPressure(depth, fGas) {
-  const ambientPressure = depthToPressure(depth);
-  return (ambientPressure - WATER_VAPOR_PRESSURE) * fGas;
-}
-
-/**
- * Exponential loading equation for individual compartment.
- */
-function exponentialUpdate(p0, pi, time, halfTime) {
-  if (time <= 0) return p0;
-  const k = Math.LN2 / halfTime;
-  return p0 + (pi - p0) * (1 - Math.exp(-k * time));
-}
+import { P_SURFACE as SURFACE_PRESSURE, DCIEM_ASCENT_PENALTY, DCIEM_SAFETY_FACTOR } from './constants.js';
+import { depthToPressure, inspiredPressure, schreiner as exponentialUpdate } from './physics.js';
 
 /**
  * Update DCIEM serial compartments where gas flows in series.

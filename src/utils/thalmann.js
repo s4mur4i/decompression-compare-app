@@ -20,31 +20,8 @@ const THALMANN_COMPARTMENTS = [
   [240.0, 300.0, 1.4, 0.0194] // Compartment 9 - Slow asymmetric
 ];
 
-import { P_WATER_VAPOR as WATER_VAPOR_PRESSURE, P_SURFACE as SURFACE_PRESSURE, LINEAR_THRESHOLD_FACTOR } from './constants.js';
-
-/**
- * Convert depth in meters to absolute pressure in bar (saltwater).
- */
-function depthToPressure(depth) {
-  return SURFACE_PRESSURE + (depth / 10.0);
-}
-
-/**
- * Calculate inspired gas pressure at given depth.
- */
-function inspiredPressure(depth, fGas) {
-  const ambientPressure = depthToPressure(depth);
-  return (ambientPressure - WATER_VAPOR_PRESSURE) * fGas;
-}
-
-/**
- * Exponential uptake equation for on-gassing phase.
- */
-function exponentialUptake(p0, pi, time, uptakeHalfTime) {
-  if (time <= 0) return p0;
-  const k = Math.LN2 / uptakeHalfTime;
-  return p0 + (pi - p0) * (1 - Math.exp(-k * time));
-}
+import { LINEAR_THRESHOLD_FACTOR } from './constants.js';
+import { depthToPressure, inspiredPressure, schreiner as exponentialUptake } from './physics.js';
 
 /**
  * Linear elimination for off-gassing when supersaturated.

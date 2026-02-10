@@ -64,21 +64,8 @@ const PARAM_SETS = {
   }
 };
 
-import { P_WATER_VAPOR, P_SURFACE } from './constants.js';
-
-function depthToPressure(depth) {
-  return P_SURFACE + depth / 10.0;
-}
-
-function inspiredPressure(depth, fGas) {
-  return (depthToPressure(depth) - P_WATER_VAPOR) * fGas;
-}
-
-function schreiner(p0, pi, time, halfTime) {
-  if (time <= 0) return p0;
-  const k = Math.LN2 / halfTime;
-  return p0 + (pi - p0) * (1 - Math.exp(-k * time));
-}
+import { P_SURFACE } from './constants.js';
+import { depthToPressure, inspiredPressure, schreiner } from './physics.js';
 
 /**
  * Calculate combined a and b values for trimix (weighted by tissue loading).

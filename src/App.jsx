@@ -8,6 +8,7 @@ import ShareLink from './components/ShareLink';
 import TissueChart from './components/TissueChart';
 import GFExplorer from './components/GFExplorer';
 import SupersatDisplay from './components/SupersatDisplay';
+import AlgorithmInfo from './components/AlgorithmInfo';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
@@ -399,7 +400,10 @@ function App() {
           )}
         </div>
 
-        {/* 6. Share */}
+        {/* 6. Algorithm Deep Dive */}
+        <AlgorithmInfo theme={theme} />
+
+        {/* 7. Share */}
         <ShareLink />
       </main>
 

@@ -20,7 +20,7 @@ const THALMANN_COMPARTMENTS = [
   [240.0, 300.0, 1.4, 0.0194] // Compartment 9 - Slow asymmetric
 ];
 
-import { LINEAR_THRESHOLD_FACTOR } from './constants.js';
+import { LINEAR_THRESHOLD_FACTOR, MAX_STOP_MINUTES, METERS_TO_FEET } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner as exponentialUptake } from './physics.js';
 
 /**
@@ -70,7 +70,7 @@ function thalmannTissueUpdate(p0, pi, time, compartment, ambientPressure) {
  */
 function thalmannMValue(compartment, depth) {
   const [, , m0, deltaM] = THALMANN_COMPARTMENTS[compartment];
-  const depthFsw = depth * 3.28084; // Convert meters to feet
+  const depthFsw = depth * METERS_TO_FEET; // Convert meters to feet
   return m0 + deltaM * depthFsw;
 }
 
@@ -91,7 +91,7 @@ function thalmannCeiling(tissueLoading) {
     
     // Solve for depth: P_tissue = M0 + ΔM × depth_fsw
     const ceilingFsw = (pN2 - m0) / deltaM;
-    const ceilingDepth = Math.max(0, ceilingFsw / 3.28084);
+    const ceilingDepth = Math.max(0, ceilingFsw / METERS_TO_FEET);
     
     if (ceilingDepth > maxCeiling) {
       maxCeiling = ceilingDepth;
@@ -191,7 +191,7 @@ export function calculateThalmann(phases, options = {}) {
       const simTissue = [...tempTissue];
       
       // Stay at stop until M-value allows ascent
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         if (canAscendThalmann(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

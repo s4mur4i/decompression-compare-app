@@ -64,7 +64,7 @@ export const PARAM_SETS = {
   }
 };
 
-import { P_SURFACE } from './constants.js';
+import { P_SURFACE, MAX_STOP_MINUTES } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner } from './physics.js';
 
 /**
@@ -205,7 +205,7 @@ export function calculateBuhlmann(phases, options = {}) {
       const simN2 = [...wN2];
       const simHe = hasHe ? [...wHe] : null;
 
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         if (canAscendTo(simN2, simHe, nextStop, Math.min(gfAtStop, gfHigh), paramSet)) {
           stopTime = minute;
           break;

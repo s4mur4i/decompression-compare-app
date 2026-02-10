@@ -17,7 +17,7 @@ const HALFTIMES = [
   109.0, 146.0, 187.0, 239.0, 305.0, 390.0, 498.0, 635.0
 ];
 
-import { P_SURFACE, GAMMA, GAMMA_C, LAMBDA_N2 } from './constants.js';
+import { P_SURFACE, GAMMA, GAMMA_C, LAMBDA_N2, MAX_STOP_MINUTES } from './constants.js';
 import { depthToPressure, pressureToDepth, inspiredPressure, schreiner } from './physics.js';
 
 // Initial critical nucleus radii at surface (meters)
@@ -165,7 +165,7 @@ export function calculateVPM(phases, options = {}) {
       const simTissue = [...workingTissue];
       const nextAmbient = depthToPressure(nextStop);
 
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         let canAscend = true;
         for (let i = 0; i < 16; i++) {
           const maxGradient = gradients[i] * gfFactor * boyleFactor;

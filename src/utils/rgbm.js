@@ -16,7 +16,7 @@
 
 // ZHL-16C parameters now imported from buhlmann.js via PARAM_SETS
 
-import { P_SURFACE } from './constants.js';
+import { P_SURFACE, MAX_STOP_MINUTES } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner } from './physics.js';
 import { PARAM_SETS } from './buhlmann.js';
 
@@ -142,7 +142,7 @@ export function calculateRGBM(phases, options = {}) {
       let stopTime = 0;
       const simTissue = [...workingTissue];
 
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         let canAscend = true;
         for (let i = 0; i < 16; i++) {
           const [, a, b] = COMPARTMENTS[i];

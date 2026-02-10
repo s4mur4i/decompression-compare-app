@@ -15,7 +15,7 @@ const DCIEM_COMPARTMENTS = [
   [480.0, 1.4]  // Compartment 4 - Very slow perfusion (bone, cartilage)
 ];
 
-import { P_SURFACE as SURFACE_PRESSURE, DCIEM_ASCENT_PENALTY, DCIEM_SAFETY_FACTOR } from './constants.js';
+import { P_SURFACE as SURFACE_PRESSURE, DCIEM_ASCENT_PENALTY, DCIEM_SAFETY_FACTOR, MAX_STOP_MINUTES } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner as exponentialUpdate } from './physics.js';
 
 /**
@@ -190,7 +190,7 @@ export function calculateDCIEM(phases, options = {}) {
       const simTissue = [...tempTissue];
       
       // Stay at stop until DCIEM criteria allow ascent
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         if (canAscendDCIEM(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

@@ -14,7 +14,7 @@ const HALDANE_HALFTIMES = [
   75.0   // Slow tissue (fat, bone)
 ];
 
-import { P_SURFACE as SURFACE_PRESSURE } from './constants.js';
+import { P_SURFACE as SURFACE_PRESSURE, MAX_STOP_MINUTES } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner as haldaneEquation } from './physics.js';
 
 /**
@@ -115,7 +115,7 @@ export function calculateHaldane(phases, options = {}) {
       const simTissue = [...tempTissue];
       
       // Wait at stop until 2:1 criterion allows ascent
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         if (canAscendHaldane(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

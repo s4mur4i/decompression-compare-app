@@ -21,7 +21,7 @@ const WORKMAN_HALFTIMES = [
 
 // Workman M-value parameters
 // M-value = M0 + ΔM × depth_in_feet
-// Converted to metric: M = M0 + ΔM × (depth_meters × 3.28084)
+// Converted to metric: M = M0 + ΔM × (depth_meters × METERS_TO_FEET)
 const WORKMAN_M_VALUES = [
   // [M0 (bar), ΔM (bar/foot)]
   [2.30, 0.0523],  // Compartment 1
@@ -35,7 +35,7 @@ const WORKMAN_M_VALUES = [
   [1.08, 0.0194]   // Compartment 9
 ];
 
-import { P_SURFACE as SURFACE_PRESSURE } from './constants.js';
+import { P_SURFACE as SURFACE_PRESSURE, MAX_STOP_MINUTES, METERS_TO_FEET } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner as exponentialLoading } from './physics.js';
 
 /**
@@ -44,7 +44,7 @@ import { depthToPressure, inspiredPressure, schreiner as exponentialLoading } fr
  */
 function workmanMValue(compartment, depth) {
   const [m0, deltaM] = WORKMAN_M_VALUES[compartment];
-  const depthFeet = depth * 3.28084; // Convert meters to feet
+  const depthFeet = depth * METERS_TO_FEET; // Convert meters to feet
   return m0 + deltaM * depthFeet;
 }
 
@@ -60,7 +60,7 @@ function workmanCeiling(tissueLoading) {
     // Solve for depth where tissue pressure equals M-value
     // P_tissue = M0 + ΔM × depth_feet
     // depth_feet = (P_tissue - M0) / ΔM
-    // depth_meters = depth_feet / 3.28084
+    // depth_meters = depth_feet / METERS_TO_FEET
     
     const [m0, deltaM] = WORKMAN_M_VALUES[i];
     if (pN2 <= m0) {
@@ -69,7 +69,7 @@ function workmanCeiling(tissueLoading) {
     }
     
     const ceilingFeet = (pN2 - m0) / deltaM;
-    const ceilingDepth = Math.max(0, ceilingFeet / 3.28084);
+    const ceilingDepth = Math.max(0, ceilingFeet / METERS_TO_FEET);
     
     if (ceilingDepth > maxCeiling) {
       maxCeiling = ceilingDepth;
@@ -154,7 +154,7 @@ export function calculateWorkman(phases, options = {}) {
       const simTissue = [...tempTissue];
       
       // Stay at stop until M-value allows ascent
-      for (let minute = 1; minute <= 999; minute++) {
+      for (let minute = 1; minute <= MAX_STOP_MINUTES; minute++) {
         if (canAscendWorkman(simTissue, nextStop)) {
           canAscend = true;
           stopTime = minute;

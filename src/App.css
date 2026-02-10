@@ -841,6 +841,36 @@ input[type="number"]::-webkit-inner-spin-button {
   border-radius: 50%;
 }
 
+/* GF Explorer */
+.gf-compartment-selector {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.gf-comp-btn {
+  width: 30px;
+  height: 30px;
+  border: 1.5px solid;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.gf-comp-btn:hover {
+  opacity: 0.8;
+}
+
+.gf-explanation {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* Footer */
 .app-footer {
   margin-top: 40px;

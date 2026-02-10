@@ -6,6 +6,7 @@ import DiveSummary from './components/DiveSummary';
 import DiveTable from './components/DiveTable';
 import ShareLink from './components/ShareLink';
 import TissueChart from './components/TissueChart';
+import GFExplorer from './components/GFExplorer';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
@@ -345,6 +346,9 @@ function App() {
           compareMode={compareMode}
           theme={theme}
         />
+
+        {/* 3c. GF Explorer */}
+        <GFExplorer settings={settingsA} theme={theme} />
 
         {/* 4. Summary */}
         <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>

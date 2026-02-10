@@ -425,6 +425,7 @@ function App() {
                   algorithmFn={learningAlgoFn}
                   settings={learningSettings}
                   algorithmName={ALGORITHM_REGISTRY[learningAlgo]?.name}
+                  algorithmRegistry={ALGORITHM_REGISTRY}
                 />
                 <AlgorithmInfo theme={theme} />
                 <BubbleChart theme={theme} />

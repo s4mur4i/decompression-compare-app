@@ -9,7 +9,8 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { PARAM_SETS } from '../utils/buhlmann';
-import { P_SURFACE } from '../utils/constants';
+import { P_SURFACE, P_WATER_VAPOR } from '../utils/constants';
+import { inspiredPressure, schreiner } from '../utils/physics';
 
 ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -19,8 +20,67 @@ const COMPARTMENT_COLORS = [
   '#ffee58', '#ffa726', '#ff7043', '#8d6e63',
 ];
 
-export default function GFExplorer({ settings, theme = 'dark' }) {
+/**
+ * Simulate tissue loading trajectory through a dive profile.
+ * Returns per-compartment arrays of { pAmb, pTissue } points.
+ */
+function simulateTissueTrajectory(profilePoints, settings, paramSet) {
+  if (!profilePoints || profilePoints.length < 2) return null;
+
+  const { fO2 = 0.21, fHe = 0 } = settings;
+  const fN2 = 1 - fO2 - fHe;
+  const hasHe = fHe > 0;
+  const nc = paramSet.compartments;
+
+  const n2 = new Array(nc).fill(inspiredPressure(0, fN2));
+  const he = hasHe ? new Array(nc).fill(0) : null;
+
+  // Store trajectory points per compartment
+  const trajectories = Array.from({ length: nc }, () => []);
+
+  const maxTime = profilePoints[profilePoints.length - 1].time;
+
+  function depthAt(t) {
+    if (t <= 0) return 0;
+    for (let i = 0; i < profilePoints.length - 1; i++) {
+      const p1 = profilePoints[i], p2 = profilePoints[i + 1];
+      if (t >= p1.time && t <= p2.time) {
+        if (p1.time === p2.time) return p1.depth;
+        const ratio = (t - p1.time) / (p2.time - p1.time);
+        return p1.depth + (p2.depth - p1.depth) * ratio;
+      }
+    }
+    return profilePoints[profilePoints.length - 1].depth;
+  }
+
+  for (let t = 0; t <= maxTime; t++) {
+    const depth = depthAt(t);
+    const pAmb = P_SURFACE + depth / 10;
+
+    if (t > 0) {
+      const piN2 = inspiredPressure(depth, fN2);
+      const piHe = hasHe ? inspiredPressure(depth, fHe) : 0;
+      for (let i = 0; i < nc; i++) {
+        n2[i] = schreiner(n2[i], piN2, 1, paramSet.halfTimes[i]);
+        if (hasHe) {
+          const heIdx = Math.min(i, paramSet.heHalfTimes.length - 1);
+          he[i] = schreiner(he[i], piHe, 1, paramSet.heHalfTimes[heIdx]);
+        }
+      }
+    }
+
+    for (let i = 0; i < nc; i++) {
+      const pTissue = n2[i] + (he ? he[i] : 0);
+      trajectories[i].push({ x: pAmb, y: pTissue });
+    }
+  }
+
+  return trajectories;
+}
+
+export default function GFExplorer({ settings, profilePoints, theme = 'dark' }) {
   const [collapsed, setCollapsed] = useState(true);
+  const [showExplanation, setShowExplanation] = useState(false);
   const [selectedCompartments, setSelectedCompartments] = useState([0, 3, 7, 11, 15]);
 
   const algorithm = settings?.algorithm || 'none';
@@ -40,6 +100,12 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
     );
   };
 
+  // Compute tissue trajectories from profile points
+  const trajectories = useMemo(() => {
+    if (!isBuhlmann || !paramSet || !profilePoints || profilePoints.length < 2) return null;
+    return simulateTissueTrajectory(profilePoints, settings, paramSet);
+  }, [profilePoints, settings, isBuhlmann, paramSet]);
+
   const datasets = useMemo(() => {
     if (!isBuhlmann || !paramSet) return [];
     const ds = [];
@@ -54,13 +120,12 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
       borderDash: [4, 4],
     });
 
-    // M-value lines for selected compartments
+    // M-value lines and GF lines for selected compartments
     selectedCompartments.forEach(i => {
       if (i >= nc) return;
       const a = paramSet.aValues[i];
       const b = paramSet.bValues[i];
 
-      // M-value line: M = a + P_amb / b
       ds.push({
         label: `TC${i + 1} M-value (t½=${paramSet.halfTimes[i]}min)`,
         data: depths.map(d => {
@@ -72,14 +137,11 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
         pointRadius: 0,
       });
 
-      // GF line: allowed = P_amb + (M - P_amb) * GF
-      // Use GF high at surface, GF low at depth (simplified)
       ds.push({
         label: `TC${i + 1} GF ${gfLow}/${gfHigh}`,
         data: depths.map(d => {
           const pAmb = P_SURFACE + d / 10;
           const M = a + pAmb / b;
-          // Interpolate GF: gfHigh at surface, gfLow at max depth
           const gf = (gfHigh + (gfLow - gfHigh) * (d / 60)) / 100;
           return { x: pAmb, y: pAmb + (M - pAmb) * gf };
         }),
@@ -88,10 +150,30 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
         borderDash: [6, 3],
         pointRadius: 0,
       });
+
+      // Tissue trajectory if available
+      if (trajectories && trajectories[i]) {
+        ds.push({
+          label: `TC${i + 1} Trajectory`,
+          data: trajectories[i],
+          borderColor: COMPARTMENT_COLORS[i % 16],
+          borderWidth: 2.5,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          borderDash: [],
+          // Use a distinct style - thicker with dots at intervals
+          segment: {
+            borderWidth: 3,
+          },
+          // Draw as scatter-ish line with background fill
+          backgroundColor: COMPARTMENT_COLORS[i % 16] + '30',
+          fill: false,
+        });
+      }
     });
 
     return ds;
-  }, [selectedCompartments, gfLow, gfHigh, nc, paramSet, depths]);
+  }, [selectedCompartments, gfLow, gfHigh, nc, paramSet, depths, trajectories]);
 
   const data = { datasets };
 
@@ -126,7 +208,7 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
       },
       y: {
         type: 'linear',
-        title: { display: true, text: 'Tolerated Tissue Pressure (bar)', color: theme === 'light' ? '#4a5568' : '#b0bec5' },
+        title: { display: true, text: 'Tissue Inert Gas Pressure (bar)', color: theme === 'light' ? '#4a5568' : '#b0bec5' },
         ticks: { color: theme === 'light' ? '#4a5568' : '#b0bec5' },
         grid: { color: theme === 'light' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' },
         min: P_SURFACE,
@@ -139,19 +221,31 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
   return (
     <div className="collapsible-section">
       <button className="collapsible-header" onClick={() => setCollapsed(!collapsed)}>
-        <span>{collapsed ? '▶' : '▼'} GF Explorer — M-value Lines</span>
+        <span>{collapsed ? '▶' : '▼'} GF Explorer — M-value Lines{trajectories ? ' & Dive Trajectory' : ''}</span>
         <span className="collapsible-hint">GF {gfLow}/{gfHigh}</span>
       </button>
       {!collapsed && (
         <div style={{ padding: '12px 16px' }}>
-          <p className="chart-explanation">
-            This graph shows how <strong>Gradient Factors</strong> limit your ascent. 
-            The solid colored lines are M-values — the absolute maximum gas pressure each tissue can tolerate at a given depth. 
-            The dashed lines show your GF-adjusted limits (GF {gfLow}/{gfHigh}) — the actual ceiling your dive computer enforces. 
-            The white dashed line is ambient pressure. You must stay <em>below</em> the dashed colored lines during ascent. 
-            Lower GF = more conservative = the dashed lines move closer to ambient = longer deco.
-            Click compartment numbers below to show/hide individual tissues.
-          </p>
+          <div className="section-header-row">
+            <button
+              className="info-toggle-btn"
+              onClick={() => setShowExplanation(!showExplanation)}
+              title="Toggle explanation"
+            >
+              ℹ️
+            </button>
+          </div>
+          {showExplanation && (
+            <p className="chart-explanation">
+              This graph shows how <strong>Gradient Factors</strong> limit your ascent. 
+              Solid colored lines are M-values — the absolute maximum gas pressure each tissue can tolerate at a given depth. 
+              Dashed lines show your GF-adjusted limits (GF {gfLow}/{gfHigh}).
+              {trajectories && <> <strong>Thick lines</strong> show the actual tissue loading trajectory during your dive — 
+              watch how tissue pressure rises during descent/bottom, then tracks along the GF line during ascent. 
+              If the trajectory crosses a dashed GF line, that tissue has exceeded your safety margin.</>}
+              {!trajectories && <> Add dive stops to see the tissue loading trajectory overlaid on M-value lines.</>}
+            </p>
+          )}
           <div className="gf-compartment-selector">
             {Array.from({ length: nc }, (_, i) => (
               <button
@@ -167,7 +261,6 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
           <div className="responsive-chart">
             <Line data={data} options={options} />
           </div>
-          {/* explanation moved above chart */}
         </div>
       )}
     </div>

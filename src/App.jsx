@@ -73,13 +73,16 @@ const ALGORITHM_REGISTRY = {
 
 function App() {
   const [stops, setStops] = useState([]);
-  const [compareMode, setCompareMode] = useState(false);
-  const [showLearning, setShowLearning] = useState(false);
+  // mode: 'single' | 'compare' | 'learning'
+  const [mode, setMode] = useState('single');
   const [settingsA, dispatchA] = useReducer(settingsReducer, DEFAULT_SETTINGS);
   const [settingsB, dispatchB] = useReducer(settingsReducer, { ...DEFAULT_SETTINGS, algorithm: 'zhl16c' });
+  const [learningAlgo, setLearningAlgo] = useState('zhl16c');
   const [initialized, setInitialized] = useState(false);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [isPending, startTransition] = useTransition();
+
+  const compareMode = mode === 'compare';
 
   // Theme
   useEffect(() => {
@@ -91,15 +94,12 @@ function App() {
 
   const setA = (key, value) => startTransition(() => dispatchA({ type: 'SET', key, value }));
   const setB = (key, value) => startTransition(() => dispatchB({ type: 'SET', key, value }));
-  const onChangeA = (key) => (value) => setA(key, value);
-  const onChangeB = (key) => (value) => setB(key, value);
 
   // MOD calculation
   const calcMOD = (fO2, ppO2) => fO2 > 0 ? Math.floor(10 * (ppO2 / fO2 - 1)) : 0;
 
   const runAlgorithm = (settings, phases) => {
     const { algorithm, fO2, fHe, gfLow, gfHigh, ascentRate, decoGas1, decoGas2, ppO2Deco } = settings;
-    // Build gas switches list (sorted deepest first)
     const gasSwitches = [];
     if (decoGas1?.fO2) {
       const switchDepth = calcMOD(decoGas1.fO2, ppO2Deco);
@@ -135,7 +135,6 @@ function App() {
     }
   };
 
-  // Helper to parse settings from URL params
   const parseSettingsFromURL = (p, suffix = '') => {
     const s = {};
     const get = (key) => p.get(key + suffix);
@@ -162,16 +161,17 @@ function App() {
     if (p.get('plan')) setStops(parsePlan(p.get('plan')));
     
     if (p.get('mode') === 'compare') {
-      setCompareMode(true);
+      setMode('compare');
       dispatchA({ type: 'MERGE', payload: parseSettingsFromURL(p, 'A') });
       dispatchB({ type: 'MERGE', payload: parseSettingsFromURL(p, 'B') });
+    } else if (p.get('mode') === 'learning') {
+      setMode('learning');
     } else {
       dispatchA({ type: 'MERGE', payload: parseSettingsFromURL(p) });
     }
     setInitialized(true);
   }, []);
 
-  // Helper to serialize settings to URL params
   const serializeSettingsToURL = (p, settings, suffix = '') => {
     const def = DEFAULT_SETTINGS;
     const set = (key, val) => p.set(key + suffix, val);
@@ -201,11 +201,13 @@ function App() {
       p.set('mode', 'compare');
       serializeSettingsToURL(p, settingsA, 'A');
       serializeSettingsToURL(p, settingsB, 'B');
+    } else if (mode === 'learning') {
+      p.set('mode', 'learning');
     } else {
       serializeSettingsToURL(p, settingsA);
     }
     window.history.replaceState(null, '', `${window.location.pathname}?${p.toString()}`);
-  }, [stops, compareMode, settingsA, settingsB, initialized]);
+  }, [stops, mode, settingsA, settingsB, initialized]);
 
   // Results
   const resultA = useMemo(() => {
@@ -292,6 +294,14 @@ function App() {
     return lines;
   }, [resultA, resultB, settingsA, settingsB, compareMode]);
 
+  // Learning mode settings
+  const learningSettings = useMemo(() => ({
+    ...DEFAULT_SETTINGS,
+    algorithm: learningAlgo,
+  }), [learningAlgo]);
+
+  const learningAlgoFn = ALGORITHM_REGISTRY[learningAlgo]?.fn;
+
   return (
     <div className="app">
       <header className="app-header">
@@ -301,134 +311,159 @@ function App() {
           {theme === 'dark' ? '☀️' : '🌙'}
         </button>
         <div className="mode-toggle">
-          <button className={`mode-btn ${!compareMode ? 'active' : ''}`} onClick={() => setCompareMode(false)}>Single</button>
-          <button className={`mode-btn ${compareMode ? 'active' : ''}`} onClick={() => setCompareMode(true)}>Compare</button>
+          <button className={`mode-btn ${mode === 'single' ? 'active' : ''}`} onClick={() => setMode('single')}>Single</button>
+          <button className={`mode-btn ${mode === 'compare' ? 'active' : ''}`} onClick={() => setMode('compare')}>Compare</button>
+          <button className={`mode-btn ${mode === 'learning' ? 'active' : ''}`} onClick={() => setMode('learning')}>📚 Learning</button>
         </div>
       </header>
 
       <main className="app-main">
-        {/* 1. Dive Stops */}
-        <div className="shared-controls">
-          <DiveStops stops={stops} onStopsChange={setStops} />
-        </div>
-
-        {/* 2. Algorithm Settings */}
-        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-          <div className="algorithm-panel panel-a">
-            {compareMode && <div className="panel-header"><span className="panel-label">Algorithm A</span></div>}
-            <DiveSettings
-              settings={settingsA}
-              onChange={(key, value) => setA(key, value)}
-              color="#4fc3f7"
+        {mode === 'learning' ? (
+          /* Learning Mode */
+          <div className="learning-mode">
+            <div className="learning-algo-selector">
+              <label>
+                Algorithm for NDL Table:
+                <select
+                  className="algo-select"
+                  value={learningAlgo}
+                  onChange={e => setLearningAlgo(e.target.value)}
+                >
+                  {Object.entries(ALGORITHM_REGISTRY).filter(([k, v]) => v.fn).map(([key, val]) => (
+                    <option key={key} value={key}>{val.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <NDLTable
+              algorithmFn={learningAlgoFn}
+              settings={learningSettings}
+              algorithmName={ALGORITHM_REGISTRY[learningAlgo]?.name}
             />
+            <AlgorithmInfo theme={theme} />
+            <BubbleChart theme={theme} />
           </div>
-          {compareMode && (
-            <div className="algorithm-panel panel-b">
-              <div className="panel-header"><span className="panel-label">Algorithm B</span></div>
-              <DiveSettings
-                settings={settingsB}
-                onChange={(key, value) => setB(key, value)}
-                color="#ff9800"
+        ) : (
+          /* Single / Compare Mode */
+          <>
+            {/* 1. Dive Stops */}
+            <div className="shared-controls">
+              <DiveStops stops={stops} onStopsChange={setStops} />
+            </div>
+
+            {/* 2. Algorithm Settings */}
+            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+              <div className="algorithm-panel panel-a">
+                {compareMode && <div className="panel-header"><span className="panel-label">Algorithm A</span></div>}
+                <DiveSettings
+                  settings={settingsA}
+                  onChange={(key, value) => setA(key, value)}
+                  color="#4fc3f7"
+                />
+              </div>
+              {compareMode && (
+                <div className="algorithm-panel panel-b">
+                  <div className="panel-header"><span className="panel-label">Algorithm B</span></div>
+                  <DiveSettings
+                    settings={settingsB}
+                    onChange={(key, value) => setB(key, value)}
+                    color="#ff9800"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 3. Graph */}
+            <div className="chart-panel">
+              {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
+              <DiveChart 
+                theme={theme}
+                profiles={compareMode ? [
+                  { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
+                  { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
+                ] : [
+                  { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
+                ]}
+                modLines={modLines}
+                ceilingLines={ceilingLines}
               />
             </div>
-          )}
-        </div>
 
-        {/* 3. Graph */}
-        <div className="chart-panel">
-          {isPending && <div className="loading-indicator"><span className="spinner" /> Calculating…</div>}
-          <DiveChart 
-            theme={theme}
-            profiles={compareMode ? [
-              { points: resultA?.points || [], color: '#4fc3f7', label: 'Algorithm A' },
-              { points: resultB?.points || [], color: '#ff9800', label: 'Algorithm B' }
-            ] : [
-              { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
-            ]}
-            modLines={modLines}
-            ceilingLines={ceilingLines}
-          />
-        </div>
-
-        {/* 3b. Tissue Chart */}
-        <TissueChart
-          decoInfoA={resultA?.decoInfo}
-          decoInfoB={resultB?.decoInfo}
-          compareMode={compareMode}
-          theme={theme}
-        />
-
-        {/* 3c. GF Explorer */}
-        <GFExplorer settings={settingsA} theme={theme} />
-
-        {/* 4. Summary */}
-        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-          <div className="algorithm-panel panel-a">
-            <DiveSummary
-              stops={stops} totalTime={resultA?.totalTime || 0}
-              decoInfo={resultA?.decoInfo} color="#4fc3f7"
-              compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
-              modViolation={modViolationA}
-              mod={settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : null}
+            {/* 3b. Tissue Chart */}
+            <TissueChart
+              decoInfoA={resultA?.decoInfo}
+              decoInfoB={resultB?.decoInfo}
+              compareMode={compareMode}
+              theme={theme}
             />
-          </div>
-          {compareMode && (
-            <div className="algorithm-panel panel-b">
-              <DiveSummary
-                stops={stops} totalTime={resultB?.totalTime || 0}
-                decoInfo={resultB?.decoInfo} color="#ff9800"
-                compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
-                modViolation={modViolationB}
-                mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
-              />
-            </div>
-          )}
-        </div>
 
-        {/* 4b. Supersaturation */}
-        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-          <div className="algorithm-panel panel-a">
-            <SupersatDisplay decoInfo={resultA?.decoInfo} label={compareMode ? 'A' : ''} color="#4fc3f7" />
-          </div>
-          {compareMode && (
-            <div className="algorithm-panel panel-b">
-              <SupersatDisplay decoInfo={resultB?.decoInfo} label="B" color="#ff9800" />
-            </div>
-          )}
-        </div>
+            {/* 3c. GF Explorer */}
+            <GFExplorer settings={settingsA} profilePoints={resultA?.points} theme={theme} />
 
-        {/* 5. Dive Plan */}
-        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
-          <div className="algorithm-panel panel-a">
-            <DiveTable phases={resultA?.phases || []} color="#4fc3f7" />
-          </div>
-          {compareMode && (
-            <div className="algorithm-panel panel-b">
-              <DiveTable phases={resultB?.phases || []} color="#ff9800" />
+            {/* 4. Summary */}
+            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+              <div className="algorithm-panel panel-a">
+                <DiveSummary
+                  stops={stops} totalTime={resultA?.totalTime || 0}
+                  decoInfo={resultA?.decoInfo} color="#4fc3f7"
+                  compareWith={compareMode && timeDifference ? `${timeDifference} vs B` : null}
+                  modViolation={modViolationA}
+                  mod={settingsA.algorithm !== 'none' ? calcMOD(settingsA.fO2, settingsA.ppO2Max) : null}
+                />
+              </div>
+              {compareMode && (
+                <div className="algorithm-panel panel-b">
+                  <DiveSummary
+                    stops={stops} totalTime={resultB?.totalTime || 0}
+                    decoInfo={resultB?.decoInfo} color="#ff9800"
+                    compareWith={timeDifference ? `${timeDifference.replace('+', '').replace('-', '+')} vs A` : null}
+                    modViolation={modViolationB}
+                    mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* 6. Share */}
-        <ShareLink />
-
-        {/* 7. Learning Tab */}
-        <div className="learning-section">
-          <button className="learning-tab-btn" onClick={() => setShowLearning(prev => !prev)}>
-            {showLearning ? '▼' : '▶'} 📚 Learning Center
-          </button>
-          {showLearning && (
-            <div className="learning-content">
-              <NDLTable
-                algorithmFn={ALGORITHM_REGISTRY[settingsA.algorithm]?.fn}
-                settings={settingsA}
-                algorithmName={ALGORITHM_REGISTRY[settingsA.algorithm]?.name}
-              />
-              <AlgorithmInfo theme={theme} />
-              <BubbleChart theme={theme} />
+            {/* 4b. Supersaturation */}
+            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+              <div className="algorithm-panel panel-a">
+                <SupersatDisplay
+                  decoInfo={resultA?.decoInfo}
+                  profilePoints={resultA?.points}
+                  settings={settingsA}
+                  label={compareMode ? 'A' : ''}
+                  color="#4fc3f7"
+                />
+              </div>
+              {compareMode && (
+                <div className="algorithm-panel panel-b">
+                  <SupersatDisplay
+                    decoInfo={resultB?.decoInfo}
+                    profilePoints={resultB?.points}
+                    settings={settingsB}
+                    label="B"
+                    color="#ff9800"
+                  />
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            {/* 5. Dive Plan */}
+            <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+              <div className="algorithm-panel panel-a">
+                <DiveTable phases={resultA?.phases || []} color="#4fc3f7" />
+              </div>
+              {compareMode && (
+                <div className="algorithm-panel panel-b">
+                  <DiveTable phases={resultB?.phases || []} color="#ff9800" />
+                </div>
+              )}
+            </div>
+
+            {/* 6. Share */}
+            <ShareLink />
+          </>
+        )}
       </main>
 
       <footer className="app-footer">

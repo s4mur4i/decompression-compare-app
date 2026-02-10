@@ -177,23 +177,38 @@ export default function GFExplorer({ settings, profilePoints, profilePhases, the
         pointRadius: 0,
       });
 
-      // Tissue trajectory if available
+      // Tissue trajectory if available — use scatter points, not connected line
       if (trajectories && trajectories[i]) {
+        const pts = trajectories[i];
+        // Find the peak ambient pressure (deepest point) to split descent vs ascent
+        let peakIdx = 0;
+        for (let j = 1; j < pts.length; j++) {
+          if (pts[j].x > pts[peakIdx].x) peakIdx = j;
+        }
+        // Descent + bottom (solid dots)
         ds.push({
-          label: `TC${i + 1} Trajectory`,
-          data: trajectories[i],
+          label: `TC${i + 1} Descent`,
+          data: pts.slice(0, peakIdx + 1),
           borderColor: COMPARTMENT_COLORS[i % 16],
-          borderWidth: 2.5,
-          pointRadius: 0,
-          pointHoverRadius: 3,
-          borderDash: [],
-          // Use a distinct style - thicker with dots at intervals
-          segment: {
-            borderWidth: 3,
-          },
-          // Draw as scatter-ish line with background fill
-          backgroundColor: COMPARTMENT_COLORS[i % 16] + '30',
-          fill: false,
+          backgroundColor: COMPARTMENT_COLORS[i % 16],
+          borderWidth: 2,
+          pointRadius: 1.5,
+          pointHoverRadius: 4,
+          showLine: true,
+          tension: 0,
+        });
+        // Ascent + deco (dashed, different shade)
+        ds.push({
+          label: `TC${i + 1} Ascent`,
+          data: pts.slice(peakIdx),
+          borderColor: COMPARTMENT_COLORS[i % 16],
+          backgroundColor: COMPARTMENT_COLORS[i % 16] + '80',
+          borderWidth: 2,
+          borderDash: [4, 2],
+          pointRadius: 1.5,
+          pointHoverRadius: 4,
+          showLine: true,
+          tension: 0,
         });
       }
     });
@@ -215,7 +230,7 @@ export default function GFExplorer({ settings, profilePoints, profilePhases, the
           font: { size: 10 },
           usePointStyle: true,
           pointStyle: 'line',
-          filter: (item) => !item.text.includes('GF '),
+          filter: (item) => !item.text.includes('GF ') && !item.text.includes('Ascent'),
         },
       },
       tooltip: {

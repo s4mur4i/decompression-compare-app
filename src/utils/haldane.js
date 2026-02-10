@@ -63,7 +63,7 @@ function haldaneCeiling(tissueLoading) {
  * @returns {Object} Deco stops and tissue data
  */
 export function calculateHaldane(phases, options = {}) {
-  const { fO2 = 0.21, ascentRate = 9, lastStopDepth = 6 } = options;
+  const { fO2 = 0.21, ascentRate = 9, decoAscentRate = 9, lastStopDepth = 6 } = options;
   const fN2 = 1.0 - fO2;
   
   // Initialize tissue loading at surface equilibrium
@@ -103,7 +103,7 @@ export function calculateHaldane(phases, options = {}) {
         ? phases[phases.length - 1]?.depth || 0 
         : currentStop + 3;
       
-      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
+      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / decoAscentRate);
       const transitPi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < HALDANE_HALFTIMES.length; i++) {
         tempTissue[i] = haldaneEquation(tempTissue[i], transitPi, transitTime, HALDANE_HALFTIMES[i]);

@@ -23,6 +23,7 @@ const DEFAULT_SETTINGS = {
   gfHigh: 70,
   descentRate: 18,
   ascentRate: 9,
+  decoAscentRate: 9,
   ppO2Max: 1.4,
   ppO2Deco: 1.6,
   decoGas1: null,
@@ -96,7 +97,8 @@ function App() {
     }
     gasSwitches.sort((a, b) => b.depth - a.depth);
 
-    const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, gasSwitches, lastStopDepth: settings.lastStopDepth || 6 };
+    const decoAscentRate = settings.decoAscentRate || ascentRate;
+    const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, decoAscentRate, gasSwitches, lastStopDepth: settings.lastStopDepth || 6 };
     const entry = ALGORITHM_REGISTRY[algorithm];
     if (!entry || !entry.fn) return null;
     return entry.fn(phases, opts);
@@ -104,14 +106,14 @@ function App() {
 
   const calculateFull = (settings) => {
     if (stops.length === 0) return null;
-    const { descentRate, ascentRate, gasSwitchTime } = settings;
+    const { descentRate, ascentRate, decoAscentRate = 9, gasSwitchTime } = settings;
     const profile = calculateDiveProfile(stops, descentRate, ascentRate);
     const decoInfo = runAlgorithm(settings, profile.phases);
     if (decoInfo) {
       const adjustedStops = gasSwitchTime
         ? decoInfo.decoStops.map(s => s.gasSwitch ? { ...s, time: 1 } : s)
         : decoInfo.decoStops;
-      const fullProfile = addAscentPhases(profile, adjustedStops, ascentRate);
+      const fullProfile = addAscentPhases(profile, adjustedStops, decoAscentRate);
       return { ...fullProfile, decoInfo };
     } else {
       const fullProfile = simpleAscent(profile, ascentRate);
@@ -130,6 +132,7 @@ function App() {
     if (get('gfh')) s.gfHigh = Number(get('gfh'));
     if (get('descent')) s.descentRate = Number(get('descent'));
     if (get('ascent')) s.ascentRate = Number(get('ascent'));
+    if (get('dascent')) s.decoAscentRate = Number(get('dascent'));
     if (get('ppo2')) s.ppO2Max = Number(get('ppo2'));
     if (get('ppo2d')) s.ppO2Deco = Number(get('ppo2d'));
     if (get('s1')) s.decoGas1 = { fO2: Number(get('s1')) / 100 };
@@ -165,6 +168,7 @@ function App() {
     if (settings.gfHigh !== def.gfHigh) set('gfh', settings.gfHigh);
     if (settings.descentRate !== def.descentRate) set('descent', settings.descentRate);
     if (settings.ascentRate !== def.ascentRate) set('ascent', settings.ascentRate);
+    if (settings.decoAscentRate !== def.decoAscentRate) set('dascent', settings.decoAscentRate);
     if (settings.ppO2Max !== def.ppO2Max) set('ppo2', settings.ppO2Max);
     if (settings.ppO2Deco !== def.ppO2Deco) set('ppo2d', settings.ppO2Deco);
     if (settings.decoGas1) set('s1', Math.round(settings.decoGas1.fO2 * 100));

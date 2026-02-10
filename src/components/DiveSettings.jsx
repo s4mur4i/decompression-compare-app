@@ -30,7 +30,7 @@ export default function DiveSettings({
 }) {
   const {
     algorithm, fO2, fHe = 0, gfLow, gfHigh,
-    descentRate, ascentRate, ppO2Max = 1.4, ppO2Deco = 1.6,
+    descentRate, ascentRate, decoAscentRate = 9, ppO2Max = 1.4, ppO2Deco = 1.6,
     decoGas1 = null, decoGas2 = null, gasSwitchTime = true,
     lastStopDepth = 6,
   } = settings;
@@ -76,6 +76,16 @@ export default function DiveSettings({
           <NumInput value={ascentRate} min={1} max={30}
             onChange={set("ascentRate")}
             onBlur={set("ascentRate")} />
+          <span>m/min</span>
+        </div>
+      </div>
+
+      <div className="setting-row">
+        <label>Deco Ascent</label>
+        <div className="rate-input">
+          <NumInput value={decoAscentRate} min={1} max={18}
+            onChange={set("decoAscentRate")}
+            onBlur={set("decoAscentRate")} />
           <span>m/min</span>
         </div>
       </div>

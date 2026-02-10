@@ -125,7 +125,7 @@ function canAscendThalmann(tissueLoading, newDepth) {
  * @returns {Object} Deco stops and tissue data
  */
 export function calculateThalmann(phases, options = {}) {
-  const { fO2 = 0.21, ascentRate = 9, lastStopDepth = 6 } = options;
+  const { fO2 = 0.21, ascentRate = 9, decoAscentRate = 9, lastStopDepth = 6 } = options;
   const fN2 = 1.0 - fO2;
   
   // Initialize tissue loading at surface equilibrium
@@ -171,7 +171,7 @@ export function calculateThalmann(phases, options = {}) {
         ? phases[phases.length - 1]?.depth || 0
         : currentStop + 3;
       
-      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
+      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / decoAscentRate);
       const transitPi = inspiredPressure(currentStop, fN2);
       const transitAmbient = depthToPressure(currentStop);
       

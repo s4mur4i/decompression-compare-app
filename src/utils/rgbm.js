@@ -70,7 +70,7 @@ function calcBubbleFactors(maxDepth, totalBottomTime) {
  * Run RGBM decompression calculation.
  */
 export function calculateRGBM(phases, options = {}) {
-  const { fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9, fHe = 0, gasSwitches = [], lastStopDepth = 6 } = options;
+  const { fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9, decoAscentRate = 9, fHe = 0, gasSwitches = [], lastStopDepth = 6 } = options;
   const fN2 = 1.0 - fO2 - (fHe || 0);
   const maxDepth = Math.max(...phases.map(p => p.depth), 0);
   const totalBottomTime = phases.reduce((sum, p) => sum + p.duration, 0);
@@ -125,7 +125,7 @@ export function calculateRGBM(phases, options = {}) {
         ? phases[phases.length - 1]?.depth || 0
         : currentStop + 3;
 
-      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
+      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / decoAscentRate);
       const transitPi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < 16; i++) {
         workingTissue[i] = schreiner(workingTissue[i], transitPi, transitTime, COMPARTMENTS[i][0]);

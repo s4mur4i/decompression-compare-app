@@ -137,7 +137,7 @@ function getGasAtDepth(depth, bottomGas, gasSwitches) {
  * Main Bühlmann calculation with trimix and multi-gas support.
  */
 export function calculateBuhlmann(phases, options = {}) {
-  const { fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9, variant = 'zhl16c', fHe = 0, gasSwitches = [], lastStopDepth = 6 } = options;
+  const { fO2 = 0.21, gfLow = 30, gfHigh = 70, ascentRate = 9, decoAscentRate = 9, variant = 'zhl16c', fHe = 0, gasSwitches = [], lastStopDepth = 6 } = options;
   const paramSet = PARAM_SETS[variant];
   if (!paramSet) throw new Error(`Unknown variant: ${variant}`);
 
@@ -185,7 +185,7 @@ export function calculateBuhlmann(phases, options = {}) {
       const gas = getGasAtDepth(currentStop, bottomGas, gasSwitches);
 
       // Transit
-      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
+      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / decoAscentRate);
       const transitPiN2 = inspiredPressure(currentStop, gas.fN2);
       const transitPiHe = hasHe ? inspiredPressure(currentStop, gas.fHe || 0) : 0;
       for (let i = 0; i < nc; i++) {

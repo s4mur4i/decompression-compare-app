@@ -104,7 +104,7 @@ function calcCeiling(tissueLoading, gradients, gfLow) {
  * Run VPM-B decompression calculation.
  */
 export function calculateVPM(phases, options = {}) {
-  const { fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9, fHe = 0, gasSwitches = [], lastStopDepth = 6 } = options;
+  const { fO2 = 0.21, gfLow = 50, gfHigh = 70, ascentRate = 9, decoAscentRate = 9, fHe = 0, gasSwitches = [], lastStopDepth = 6 } = options;
   const fN2 = 1.0 - fO2 - (fHe || 0);
   const maxDepth = Math.max(...phases.map(p => p.depth), 0);
   const maxAmbientPressure = depthToPressure(maxDepth);
@@ -141,7 +141,7 @@ export function calculateVPM(phases, options = {}) {
         : currentStop + 3;
 
       // Transit to this stop
-      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / ascentRate);
+      const transitTime = Math.ceil(Math.abs(prevDepth - currentStop) / decoAscentRate);
       const transitPi = inspiredPressure(currentStop, fN2);
       for (let i = 0; i < 16; i++) {
         workingTissue[i] = schreiner(workingTissue[i], transitPi, transitTime, HALFTIMES[i]);

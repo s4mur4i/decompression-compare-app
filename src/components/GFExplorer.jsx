@@ -9,8 +9,9 @@ import {
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
 import { PARAM_SETS } from '../utils/buhlmann';
-import { P_SURFACE, P_WATER_VAPOR } from '../utils/constants';
+import { P_SURFACE } from '../utils/constants';
 import { inspiredPressure, schreiner } from '../utils/physics';
+import { buildGasTimeline, getGasAtTime } from '../utils/gasTimeline';
 
 ChartJS.register(LinearScale, PointElement, LineElement, Tooltip, Legend);
 
@@ -19,35 +20,6 @@ const COMPARTMENT_COLORS = [
   '#29b6f6', '#26c6da', '#26a69a', '#66bb6a', '#9ccc65', '#d4e157',
   '#ffee58', '#ffa726', '#ff7043', '#8d6e63',
 ];
-
-/**
- * Build a gas timeline from dive phases: [{startTime, fO2, fHe, fN2}]
- */
-function buildGasTimeline(phases, defaultFO2, defaultFHe) {
-  if (!phases || phases.length === 0) return [{ startTime: 0, fO2: defaultFO2, fHe: defaultFHe, fN2: 1 - defaultFO2 - defaultFHe }];
-  const timeline = [];
-  let currentFO2 = defaultFO2, currentFHe = defaultFHe;
-  let runTime = 0;
-  for (const phase of phases) {
-    if (phase.gas) {
-      const parts = phase.gas.split('/');
-      currentFO2 = parseInt(parts[0]) / 100;
-      currentFHe = parts.length > 1 ? parseInt(parts[1]) / 100 : 0;
-    }
-    timeline.push({ startTime: runTime, fO2: currentFO2, fHe: currentFHe, fN2: 1 - currentFO2 - currentFHe });
-    runTime += phase.duration;
-  }
-  return timeline;
-}
-
-function getGasAtTime(timeline, t) {
-  let gas = timeline[0];
-  for (const g of timeline) {
-    if (g.startTime <= t) gas = g;
-    else break;
-  }
-  return gas;
-}
 
 /**
  * Simulate tissue loading trajectory through a dive profile.

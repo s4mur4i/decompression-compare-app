@@ -344,14 +344,14 @@ function App() {
     const lines = [];
     if (resultA?.points && settingsA.algorithm !== 'none') {
       lines.push({
-        data: calculateCeilingTimeline(resultA.points, settingsA),
+        data: calculateCeilingTimeline(resultA.points, settingsA, resultA.phases),
         color: '#ff6b35',
         label: compareMode ? 'Ceiling A' : 'Ceiling',
       });
     }
     if (compareMode && resultB?.points && settingsB.algorithm !== 'none') {
       lines.push({
-        data: calculateCeilingTimeline(resultB.points, settingsB),
+        data: calculateCeilingTimeline(resultB.points, settingsB, resultB.phases),
         color: '#ff4081',
         label: 'Ceiling B',
       });

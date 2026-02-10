@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { P_SURFACE, P_WATER_VAPOR } from '../utils/constants';
+import { P_SURFACE } from '../utils/constants';
 import { inspiredPressure, schreiner } from '../utils/physics';
 import { PARAM_SETS } from '../utils/buhlmann';
+import { buildGasTimeline, getGasAtTime } from '../utils/gasTimeline';
 
 function getSatColor(pct) {
   if (pct > 100) return '#ff1744';
@@ -15,35 +16,6 @@ function getSatLabel(pct) {
   if (pct > 80) return 'High';
   if (pct > 50) return 'Moderate';
   return 'Safe';
-}
-
-/**
- * Build a gas timeline from dive phases: [{startTime, fO2, fHe, fN2}]
- */
-function buildGasTimeline(phases, defaultFO2, defaultFHe) {
-  if (!phases || phases.length === 0) return [{ startTime: 0, fO2: defaultFO2, fHe: defaultFHe, fN2: 1 - defaultFO2 - defaultFHe }];
-  const timeline = [];
-  let currentFO2 = defaultFO2, currentFHe = defaultFHe;
-  let runTime = 0;
-  for (const phase of phases) {
-    if (phase.gas) {
-      const parts = phase.gas.split('/');
-      currentFO2 = parseInt(parts[0]) / 100;
-      currentFHe = parts.length > 1 ? parseInt(parts[1]) / 100 : 0;
-    }
-    timeline.push({ startTime: runTime, fO2: currentFO2, fHe: currentFHe, fN2: 1 - currentFO2 - currentFHe });
-    runTime += phase.duration;
-  }
-  return timeline;
-}
-
-function getGasAtTime(timeline, t) {
-  let gas = timeline[0];
-  for (const g of timeline) {
-    if (g.startTime <= t) gas = g;
-    else break;
-  }
-  return gas;
 }
 
 /**

@@ -177,38 +177,16 @@ export default function GFExplorer({ settings, profilePoints, profilePhases, the
         pointRadius: 0,
       });
 
-      // Tissue trajectory if available — use scatter points, not connected line
+      // Tissue trajectory — scatter dots (one per minute), no connecting lines
       if (trajectories && trajectories[i]) {
-        const pts = trajectories[i];
-        // Find the peak ambient pressure (deepest point) to split descent vs ascent
-        let peakIdx = 0;
-        for (let j = 1; j < pts.length; j++) {
-          if (pts[j].x > pts[peakIdx].x) peakIdx = j;
-        }
-        // Descent + bottom (solid dots)
         ds.push({
-          label: `TC${i + 1} Descent`,
-          data: pts.slice(0, peakIdx + 1),
-          borderColor: COMPARTMENT_COLORS[i % 16],
+          label: `TC${i + 1} Dive`,
+          data: trajectories[i],
+          borderColor: 'transparent',
           backgroundColor: COMPARTMENT_COLORS[i % 16],
-          borderWidth: 2,
-          pointRadius: 1.5,
-          pointHoverRadius: 4,
-          showLine: true,
-          tension: 0,
-        });
-        // Ascent + deco (dashed, different shade)
-        ds.push({
-          label: `TC${i + 1} Ascent`,
-          data: pts.slice(peakIdx),
-          borderColor: COMPARTMENT_COLORS[i % 16],
-          backgroundColor: COMPARTMENT_COLORS[i % 16] + '80',
-          borderWidth: 2,
-          borderDash: [4, 2],
-          pointRadius: 1.5,
-          pointHoverRadius: 4,
-          showLine: true,
-          tension: 0,
+          pointRadius: 2,
+          pointHoverRadius: 5,
+          showLine: false,
         });
       }
     });
@@ -230,7 +208,7 @@ export default function GFExplorer({ settings, profilePoints, profilePhases, the
           font: { size: 10 },
           usePointStyle: true,
           pointStyle: 'line',
-          filter: (item) => !item.text.includes('GF ') && !item.text.includes('Ascent'),
+          filter: (item) => !item.text.includes('GF '),
         },
       },
       tooltip: {

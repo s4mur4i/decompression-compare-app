@@ -10,6 +10,7 @@ import GFExplorer from './components/GFExplorer';
 import SupersatDisplay from './components/SupersatDisplay';
 import AlgorithmInfo from './components/AlgorithmInfo';
 import BubbleChart from './components/BubbleChart';
+import NDLTable from './components/NDLTable';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
@@ -407,7 +408,14 @@ function App() {
         {/* 7. Bubble Mechanics */}
         <BubbleChart theme={theme} />
 
-        {/* 8. Share */}
+        {/* 8. NDL Table */}
+        <NDLTable
+          algorithmFn={ALGORITHM_REGISTRY[settingsA.algorithm]?.fn}
+          settings={settingsA}
+          algorithmName={ALGORITHM_REGISTRY[settingsA.algorithm]?.name}
+        />
+
+        {/* 9. Share */}
         <ShareLink />
       </main>
 

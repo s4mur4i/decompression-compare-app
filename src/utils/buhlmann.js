@@ -301,6 +301,7 @@ export const ALGORITHMS = {
   dciem:   { name: 'DCIEM',             description: 'Canadian serial compartments. Very conservative. Air/Nitrox.', trimix: false, multiGas: false, gf: false },
   dsat:    { name: 'DSAT/PADI',         description: 'Recreational NDL-only. No deco calculation.',                    trimix: false, multiGas: false, gf: false },
   usnavy:  { name: 'US Navy Rev 7',     description: 'Table-based USN Diving Manual Rev 7. Air only.',                  trimix: false, multiGas: false, gf: false },
+  bsac:    { name: 'BSAC \'88',        description: 'British Sub-Aqua Club 1988 tables. Air only.',                     trimix: false, multiGas: false, gf: false },
 };
 
 export { calculateZHL16C as default };

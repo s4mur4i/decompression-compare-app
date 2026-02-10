@@ -21,6 +21,7 @@ import { calculateThalmann } from './utils/thalmann';
 import { calculateDCIEM } from './utils/dciem';
 import { calculateDSAT } from './utils/dsat';
 import { calculateUSNavy } from './utils/usnavy';
+import { calculateBSAC } from './utils/bsac';
 import { calculateCeilingTimeline } from './utils/ceiling';
 import './App.css';
 
@@ -67,6 +68,7 @@ const ALGORITHM_REGISTRY = {
   dciem:    { fn: calculateDCIEM,    name: 'DCIEM',             description: 'Canadian serial compartments. Very conservative. Air/Nitrox.', trimix: false, multiGas: false, gf: false },
   dsat:     { fn: calculateDSAT,    name: 'DSAT/PADI',         description: 'Recreational NDL-only. No deco calculation — indicates if NDL exceeded.', trimix: false, multiGas: false, gf: false },
   usnavy:   { fn: calculateUSNavy,  name: 'US Navy Rev 7',     description: 'Table-based USN Diving Manual Rev 7. Air only.',                        trimix: false, multiGas: false, gf: false },
+  bsac:     { fn: calculateBSAC,    name: 'BSAC \'88',        description: 'British Sub-Aqua Club 1988 tables. Air only.',                           trimix: false, multiGas: false, gf: false },
 };
 
 function App() {

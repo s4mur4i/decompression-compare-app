@@ -2,13 +2,13 @@
 
 ## UX Improvements
 
-- [ ] **Dark/Light mode toggle** — currently dark-only (small)
-- [ ] **Mobile responsiveness** — improve cramped inputs on mobile, better touch targets (medium)
-- [ ] **Drag-and-drop stop reordering** — replace ↑↓ buttons (medium)
+- [x] ~~Dark/Light mode toggle~~ ✅
+- [x] ~~Mobile responsiveness~~ ✅
+- [x] ~~Drag-and-drop stop reordering~~ ✅
 - [ ] **Imperial units toggle** — feet/FSW support (medium)
-- [ ] **Quick gas presets** — Air, EAN32, EAN36, Trimix 21/35 buttons (small)
-- [ ] **Responsive chart** — make chart height adapt to screen (small)
-- [ ] **Loading/calculating indicator** — for complex profiles (small)
+- [x] ~~Quick gas presets~~ ✅
+- [x] ~~Responsive chart~~ ✅
+- [x] ~~Loading/calculating indicator~~ ✅
 
 ## Algorithm Improvements
 
@@ -52,16 +52,14 @@
 
 ## Educational Features
 
-- [ ] **Tissue compartment visualization** — bar chart showing loading per compartment (medium)
-- [ ] **Real-time ceiling line on chart** — show ceiling during dive (medium)
-- [ ] **Algorithm explanation tooltips** — hover info for each algorithm (small)
-- [ ] **"What-if" scenarios** — slider to adjust bottom time and see deco change live (medium)
-- [ ] **GF explorer** — visualize how GF Low/High affect M-value lines (medium)
-- [ ] **Supersaturation gradient display** — show how close each tissue is to limit (medium)
-- [ ] **Side-by-side algorithm deep-dive** — educational page explaining differences (large)
-- [ ] **Historical context** — timeline of decompression theory development (small)
-- [ ] **Bubble mechanics visualization** — for VPM/RGBM understanding (large)
-- [ ] **No-deco limit table generator** — generate NDL table for given gas mix (small)
+- [x] ~~Tissue compartment visualization~~ ✅
+- [x] ~~Real-time ceiling line on chart~~ ✅
+- [x] ~~Algorithm explanation tooltips~~ ✅
+- [x] ~~GF explorer~~ ✅ (separate graph)
+- [x] ~~Supersaturation gradient display~~ ✅
+- [x] ~~Side-by-side algorithm deep-dive~~ ✅
+- [x] ~~Bubble mechanics visualization~~ ✅
+- [x] ~~NDL table generator~~ ✅
 
 ## Technical Improvements
 

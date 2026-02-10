@@ -9,6 +9,7 @@ import TissueChart from './components/TissueChart';
 import GFExplorer from './components/GFExplorer';
 import SupersatDisplay from './components/SupersatDisplay';
 import AlgorithmInfo from './components/AlgorithmInfo';
+import BubbleChart from './components/BubbleChart';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
@@ -403,7 +404,10 @@ function App() {
         {/* 6. Algorithm Deep Dive */}
         <AlgorithmInfo theme={theme} />
 
-        {/* 7. Share */}
+        {/* 7. Bubble Mechanics */}
+        <BubbleChart theme={theme} />
+
+        {/* 8. Share */}
         <ShareLink />
       </main>
 

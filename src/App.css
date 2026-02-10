@@ -990,6 +990,38 @@ input[type="number"]::-webkit-inner-spin-button {
   text-align: center;
 }
 
+/* Bubble Chart */
+.bubble-controls {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.bubble-controls label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.bubble-controls input[type="range"] {
+  accent-color: var(--accent);
+  width: 120px;
+}
+
+.bubble-explanation {
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.bubble-explanation strong {
+  color: var(--text-secondary);
+}
+
 /* Footer */
 .app-footer {
   margin-top: 40px;

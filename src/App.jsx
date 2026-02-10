@@ -7,6 +7,7 @@ import DiveTable from './components/DiveTable';
 import ShareLink from './components/ShareLink';
 import TissueChart from './components/TissueChart';
 import GFExplorer from './components/GFExplorer';
+import SupersatDisplay from './components/SupersatDisplay';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
 import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
@@ -370,6 +371,18 @@ function App() {
                 modViolation={modViolationB}
                 mod={settingsB.algorithm !== 'none' ? calcMOD(settingsB.fO2, settingsB.ppO2Max) : null}
               />
+            </div>
+          )}
+        </div>
+
+        {/* 4b. Supersaturation */}
+        <div className={`algorithm-panels ${compareMode ? 'compare' : 'single'}`}>
+          <div className="algorithm-panel panel-a">
+            <SupersatDisplay decoInfo={resultA?.decoInfo} label={compareMode ? 'A' : ''} color="#4fc3f7" />
+          </div>
+          {compareMode && (
+            <div className="algorithm-panel panel-b">
+              <SupersatDisplay decoInfo={resultB?.decoInfo} label="B" color="#ff9800" />
             </div>
           )}
         </div>

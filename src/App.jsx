@@ -406,25 +406,8 @@ function App() {
         {mode === 'learning' ? (
           <ErrorBoundary section="Learning Mode">
             <div className="learning-mode">
-              <div className="learning-algo-selector">
-                <label>
-                  Algorithm for NDL Table:
-                  <select
-                    className="algo-select"
-                    value={learningAlgo}
-                    onChange={e => setLearningAlgo(e.target.value)}
-                  >
-                    {Object.entries(ALGORITHM_REGISTRY).filter(([k, v]) => v.fn).map(([key, val]) => (
-                      <option key={key} value={key}>{val.name}</option>
-                    ))}
-                  </select>
-                </label>
-              </div>
               <Suspense fallback={<LazyFallback />}>
                 <NDLTable
-                  algorithmFn={learningAlgoFn}
-                  settings={learningSettings}
-                  algorithmName={ALGORITHM_REGISTRY[learningAlgo]?.name}
                   algorithmRegistry={ALGORITHM_REGISTRY}
                 />
                 <AlgorithmInfo theme={theme} />

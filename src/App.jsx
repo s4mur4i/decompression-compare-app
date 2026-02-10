@@ -19,6 +19,7 @@ import { calculateHaldane } from './utils/haldane';
 import { calculateWorkman } from './utils/workman';
 import { calculateThalmann } from './utils/thalmann';
 import { calculateDCIEM } from './utils/dciem';
+import { calculateDSAT } from './utils/dsat';
 import { calculateCeilingTimeline } from './utils/ceiling';
 import './App.css';
 
@@ -63,6 +64,7 @@ const ALGORITHM_REGISTRY = {
   workman:  { fn: calculateWorkman,  name: 'Workman (1965)',     description: 'US Navy M-values. 9 compartments. Air/Nitrox only.',          trimix: false, multiGas: false, gf: false },
   thalmann: { fn: calculateThalmann, name: 'Thalmann VVAL-18',  description: 'US Navy asymmetric kinetics. Air/Nitrox only.',               trimix: false, multiGas: false, gf: false },
   dciem:    { fn: calculateDCIEM,    name: 'DCIEM',             description: 'Canadian serial compartments. Very conservative. Air/Nitrox.', trimix: false, multiGas: false, gf: false },
+  dsat:     { fn: calculateDSAT,    name: 'DSAT/PADI',         description: 'Recreational NDL-only. No deco calculation — indicates if NDL exceeded.', trimix: false, multiGas: false, gf: false },
 };
 
 function App() {

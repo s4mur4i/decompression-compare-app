@@ -299,6 +299,7 @@ export const ALGORITHMS = {
   workman: { name: 'Workman (1965)',     description: 'US Navy M-values. 9 compartments. Air/Nitrox only.',          trimix: false, multiGas: false, gf: false },
   thalmann:{ name: 'Thalmann VVAL-18',  description: 'US Navy asymmetric kinetics. Air/Nitrox only.',               trimix: false, multiGas: false, gf: false },
   dciem:   { name: 'DCIEM',             description: 'Canadian serial compartments. Very conservative. Air/Nitrox.', trimix: false, multiGas: false, gf: false },
+  dsat:    { name: 'DSAT/PADI',         description: 'Recreational NDL-only. No deco calculation.',                    trimix: false, multiGas: false, gf: false },
 };
 
 export { calculateZHL16C as default };

@@ -143,7 +143,7 @@ export default function TissueChart({ decoInfoA, decoInfoB, compareMode, theme =
             The red dashed line is the <strong>M-value</strong> — the maximum safe gas loading. 
             Green = safe, yellow = getting close, red = near the limit.
           </p>
-          <div style={{ height: '280px' }}>
+          <div className="responsive-chart">
             <Bar data={data} options={options} />
           </div>
           <div className="tissue-legend">

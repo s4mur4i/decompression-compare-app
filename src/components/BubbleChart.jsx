@@ -138,7 +138,7 @@ export default function BubbleChart({ theme = 'dark' }) {
               Bottom: <input type="range" min={5} max={60} value={bottomTime} onChange={e => setBottomTime(Number(e.target.value))} /> {bottomTime}min
             </label>
           </div>
-          <div style={{ height: '280px' }}>
+          <div className="responsive-chart">
             <Line data={data} options={options} />
           </div>
           <div className="bubble-explanation">

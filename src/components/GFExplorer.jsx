@@ -164,7 +164,7 @@ export default function GFExplorer({ settings, theme = 'dark' }) {
               </button>
             ))}
           </div>
-          <div style={{ height: '350px' }}>
+          <div className="responsive-chart">
             <Line data={data} options={options} />
           </div>
           {/* explanation moved above chart */}

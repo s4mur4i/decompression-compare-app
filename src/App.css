@@ -1323,3 +1323,14 @@ input[type="number"]::-webkit-inner-spin-button {
 .learning-content {
   padding: 8px;
 }
+
+/* Responsive chart containers */
+.responsive-chart {
+  height: min(350px, 50vh);
+  width: 100%;
+}
+@media (max-width: 600px) {
+  .responsive-chart {
+    height: min(280px, 45vh);
+  }
+}

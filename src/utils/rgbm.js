@@ -182,11 +182,24 @@ export function calculateRGBM(phases, options = {}) {
     }
   }
 
+  // M-values at surface with bubble reduction
+  const mValues = [];
+  const surfaceAmbient = P_SURFACE;
+  for (let i = 0; i < 16; i++) {
+    const [, a, b] = COMPARTMENTS[i];
+    const rawM = a + surfaceAmbient / b;
+    const reducedM = surfaceAmbient + (rawM - surfaceAmbient) * bubbleFactors[i];
+    mValues.push(reducedM);
+  }
+
   return {
     decoStops,
     firstStopDepth,
     tissueLoading: [...tissueLoading],
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
+    compartmentCount: 16,
+    halfTimes: COMPARTMENTS.map(c => c[0]),
+    mValues,
   };
 }

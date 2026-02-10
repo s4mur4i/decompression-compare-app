@@ -221,11 +221,16 @@ export function calculateDCIEM(phases, options = {}) {
     }
   }
   
+  const mValues = DCIEM_COMPARTMENTS.map((c) => SURFACE_PRESSURE * c[1] * DCIEM_SAFETY_FACTOR);
+
   return {
     decoStops,
     firstStopDepth,
     tissueLoading: [...tissueLoading],
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
+    compartmentCount: DCIEM_COMPARTMENTS.length,
+    halfTimes: DCIEM_COMPARTMENTS.map(c => c[0]),
+    mValues,
   };
 }

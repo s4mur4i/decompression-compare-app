@@ -230,11 +230,16 @@ export function calculateThalmann(phases, options = {}) {
     }
   }
   
+  const mValues = THALMANN_COMPARTMENTS.map((_, i) => thalmannMValue(i, 0));
+
   return {
     decoStops,
     firstStopDepth,
     tissueLoading: [...tissueLoading],
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
+    compartmentCount: THALMANN_COMPARTMENTS.length,
+    halfTimes: THALMANN_COMPARTMENTS.map(c => c[0]),
+    mValues,
   };
 }

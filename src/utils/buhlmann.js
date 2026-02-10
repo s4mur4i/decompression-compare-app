@@ -248,6 +248,18 @@ export function calculateBuhlmann(phases, options = {}) {
     }
   }
 
+  // Compute M-values and a/b for each compartment at surface
+  const surfaceAmbient = P_SURFACE;
+  const mValues = [];
+  const aValues = [];
+  const bValues = [];
+  for (let i = 0; i < nc; i++) {
+    const { a, b } = combinedAB(i, n2Loading[i], heLoading ? heLoading[i] : 0, paramSet);
+    aValues.push(a);
+    bValues.push(b);
+    mValues.push(a + surfaceAmbient / b);
+  }
+
   return {
     decoStops,
     firstStopDepth,
@@ -256,6 +268,11 @@ export function calculateBuhlmann(phases, options = {}) {
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
     variant: paramSet.name,
+    compartmentCount: nc,
+    halfTimes: paramSet.halfTimes.slice(0, nc),
+    mValues,
+    aValues,
+    bValues,
   };
 }
 

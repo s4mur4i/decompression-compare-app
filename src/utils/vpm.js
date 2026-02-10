@@ -200,11 +200,20 @@ export function calculateVPM(phases, options = {}) {
     }
   }
 
+  // Compute M-values at surface for visualization
+  const mValues = [];
+  for (let i = 0; i < 16; i++) {
+    mValues.push(P_SURFACE + gradients[i]);
+  }
+
   return {
     decoStops,
     firstStopDepth,
     tissueLoading: [...tissueLoading],
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
+    compartmentCount: 16,
+    halfTimes: [...HALFTIMES],
+    mValues,
   };
 }

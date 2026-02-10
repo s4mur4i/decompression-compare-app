@@ -183,11 +183,17 @@ export function calculateWorkman(phases, options = {}) {
     }
   }
   
+  // M-values at surface (depth=0)
+  const mValues = WORKMAN_HALFTIMES.map((_, i) => workmanMValue(i, 0));
+
   return {
     decoStops,
     firstStopDepth,
     tissueLoading: [...tissueLoading],
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
+    compartmentCount: WORKMAN_HALFTIMES.length,
+    halfTimes: [...WORKMAN_HALFTIMES],
+    mValues,
   };
 }

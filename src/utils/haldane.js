@@ -144,11 +144,17 @@ export function calculateHaldane(phases, options = {}) {
     }
   }
   
+  // M-values for Haldane: 2:1 ratio → M = 2 × P_surface
+  const mValues = HALDANE_HALFTIMES.map(() => 2.0 * SURFACE_PRESSURE);
+
   return {
     decoStops,
     firstStopDepth,
     tissueLoading: [...tissueLoading],
     ceiling: rawCeiling,
     noDecoLimit: firstStopDepth === 0,
+    compartmentCount: HALDANE_HALFTIMES.length,
+    halfTimes: [...HALDANE_HALFTIMES],
+    mValues,
   };
 }

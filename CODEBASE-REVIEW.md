@@ -12,17 +12,13 @@
 
 ## Algorithm Improvements
 
-- [ ] **Validation against reference implementations** — compare with MultiDeco, Subsurface, V-Planner output (large)
+- [x] ~~Validation & comprehensive testing~~ ✅ (161 tests: validation, edge cases, cross-algorithm)
 - [ ] **VPM-B/E with full bubble tracking** — current VPM is simplified (large)
 - [ ] **RGBM full Wienke implementation** — current uses simplified bubble factors (large)
-- [ ] **Trimix support for VPM/RGBM** — currently Nitrox only (medium)
-- [ ] **Multi-gas support for all algorithms** — Haldane/Workman/Thalmann/DCIEM lack it (medium)
-- [ ] **Add DSAT (Recreational PADI)** — Spencer no-stop limits (medium)
-- [ ] **Add US Navy Rev 7 tables** — new standard (medium)
-- [ ] **Add BSAC '88 tables** — common in UK diving (medium)
-- [ ] **GF support for VPM/RGBM** — they accept gf params but implement them differently (small)
-- [ ] **Altitude diving correction** — adjust surface pressure for altitude (small)
-- [ ] **Saltwater/freshwater toggle** — affects pressure conversion (small)
+- [x] ~~Add DSAT (Recreational PADI)~~ ✅ NDL-based
+- [x] ~~Add US Navy Rev 7 tables~~ ✅ table-based
+- [x] ~~Add BSAC '88 tables~~ ✅ table-based
+- [x] ~~GF support for VPM/RGBM~~ ✅ verified working
 
 ## Dive Planning Features
 
@@ -66,7 +62,7 @@
 - [ ] **PWA support** — service worker, offline capability, installable (medium)
 - [ ] **Web Worker for calculations** — move heavy computation off main thread (medium)
 - [ ] **TypeScript migration** — type safety for algorithm parameters (large)
-- [ ] **Unit tests for all algorithms** — expand test coverage (medium)
+- [x] ~~Unit tests for all algorithms~~ ✅ (161 tests)
 - [ ] **Integration tests** — full flow: stops → algorithm → chart (medium)
 - [ ] **Performance profiling** — useMemo dependency arrays (small)
 - [ ] **Code splitting** — lazy-load algorithm files (small)

@@ -168,6 +168,98 @@ test.describe('Compare Mode', () => {
   });
 });
 
+test.describe('URL Loading Regression', () => {
+  test('VPM algorithm loads without blank screen', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=50%3A40&algo=vpm');
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.dive-summary')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('RGBM algorithm loads without blank screen', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=40%3A30&algo=rgbm');
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.dive-summary')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('Haldane algorithm loads without blank screen', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=30%3A20&algo=haldane');
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.dive-summary')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('compare mode with trimix and deco gases loads', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=55%3A40%2C50%3A10&mode=compare&algoA=zhl16c&heA=35&s1A=50&s2A=80&algoB=zhl16c');
+    await page.waitForTimeout(2000);
+    const tables = page.locator('.dive-table');
+    await expect(tables.first()).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('compare mode Bühlmann vs VPM loads', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=50%3A30&mode=compare&algoA=zhl16c&algoB=vpm');
+    await page.waitForTimeout(2000);
+    const tables = page.locator('.dive-table');
+    const count = await tables.count();
+    expect(count).toBe(2);
+    expect(errors).toEqual([]);
+  });
+
+  test('compare mode VPM vs RGBM loads', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=40%3A25&mode=compare&algoA=vpm&algoB=rgbm');
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.dive-summary').first()).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('table-based algorithms load (DSAT, USN, BSAC)', async ({ page }) => {
+    for (const algo of ['dsat', 'usnavy', 'bsac']) {
+      const errors = [];
+      page.on('pageerror', e => errors.push(e.message));
+      await page.goto(`/?plan=30%3A20&algo=${algo}`);
+      await page.waitForTimeout(2000);
+      await expect(page.locator('.dive-summary')).toBeVisible();
+      expect(errors).toEqual([]);
+    }
+  });
+
+  test('switching from Bühlmann to VPM does not crash', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=40%3A25&algo=zhl16c');
+    await page.waitForTimeout(1000);
+    await page.locator('.algo-select').selectOption('vpm');
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.dive-summary')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+
+  test('switching from VPM to Bühlmann does not crash', async ({ page }) => {
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    await page.goto('/?plan=40%3A25&algo=vpm');
+    await page.waitForTimeout(1000);
+    await page.locator('.algo-select').selectOption('zhl16c');
+    await page.waitForTimeout(2000);
+    await expect(page.locator('.dive-summary')).toBeVisible();
+    expect(errors).toEqual([]);
+  });
+});
+
 test.describe('Share Link', () => {
   test('share button is visible', async ({ page }) => {
     await page.goto('/?plan=25:10');

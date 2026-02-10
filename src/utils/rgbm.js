@@ -14,28 +14,17 @@
  * and applies RGBM bubble reduction factors to the M-values.
  */
 
-// ZHL-16C parameters [halfTime, a, b]
-const COMPARTMENTS = [
-  [4.0, 1.2599, 0.5050],
-  [8.0, 1.0000, 0.6514],
-  [12.5, 0.8618, 0.7222],
-  [18.5, 0.7562, 0.7825],
-  [27.0, 0.6200, 0.8126],
-  [38.3, 0.5043, 0.8434],
-  [54.3, 0.4410, 0.8693],
-  [77.0, 0.4000, 0.8910],
-  [109.0, 0.3750, 0.9092],
-  [146.0, 0.3500, 0.9222],
-  [187.0, 0.3295, 0.9319],
-  [239.0, 0.3065, 0.9403],
-  [305.0, 0.2835, 0.9477],
-  [390.0, 0.2610, 0.9544],
-  [498.0, 0.2480, 0.9602],
-  [635.0, 0.2327, 0.9653],
-];
+// ZHL-16C parameters now imported from buhlmann.js via PARAM_SETS
 
 import { P_SURFACE } from './constants.js';
 import { depthToPressure, inspiredPressure, schreiner } from './physics.js';
+import { PARAM_SETS } from './buhlmann.js';
+
+// Reuse ZHL-16C half-times from Bühlmann; a/b values are RGBM-specific
+const ZHL16C = PARAM_SETS['zhl16c'];
+const RGBM_A = [1.2599, 1.0000, 0.8618, 0.7562, 0.6200, 0.5043, 0.4410, 0.4000, 0.3750, 0.3500, 0.3295, 0.3065, 0.2835, 0.2610, 0.2480, 0.2327];
+const RGBM_B = [0.5050, 0.6514, 0.7222, 0.7825, 0.8126, 0.8434, 0.8693, 0.8910, 0.9092, 0.9222, 0.9319, 0.9403, 0.9477, 0.9544, 0.9602, 0.9653];
+const COMPARTMENTS = ZHL16C.halfTimes.map((ht, i) => [ht, RGBM_A[i], RGBM_B[i]]);
 
 /**
  * Calculate RGBM bubble reduction factor for each compartment.

@@ -466,10 +466,6 @@ function App() {
             {resultA && (
               <div className="key-metrics-bar">
                 <div className="key-metric">
-                  <span className="key-metric-label">TTS</span>
-                  <span className="key-metric-value">{resultA.totalTime || 0} min</span>
-                </div>
-                <div className="key-metric">
                   <span className="key-metric-label">Max Depth</span>
                   <span className="key-metric-value">{stops.length ? Math.max(...stops.map(s => s.depth)) : 0}m</span>
                 </div>

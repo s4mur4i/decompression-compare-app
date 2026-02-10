@@ -719,6 +719,67 @@ input[type="number"]::-webkit-inner-spin-button {
   to { transform: rotate(360deg); }
 }
 
+/* Algorithm tooltip */
+.algo-select-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.algo-select-wrapper .algo-select {
+  flex: 1;
+}
+
+.algo-tooltip-trigger {
+  position: relative;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.algo-tooltip {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 100;
+  width: 320px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-accent-strong);
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.algo-tooltip-trigger:hover .algo-tooltip,
+.algo-tooltip-trigger:focus .algo-tooltip {
+  display: block;
+}
+
+.algo-tooltip-section {
+  margin-bottom: 6px;
+}
+
+.algo-tooltip-section:last-child {
+  margin-bottom: 0;
+}
+
+.algo-tooltip-section strong {
+  color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .algo-tooltip {
+    width: 260px;
+    right: -20px;
+  }
+}
+
 /* Collapsible sections */
 .collapsible-section {
   background: var(--bg-secondary);

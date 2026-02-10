@@ -1,0 +1,75 @@
+export const ALGORITHM_TOOLTIPS = {
+  none: null,
+  zhl16a: {
+    history: 'Original Bühlmann ZH-L 16A (1986), developed by Prof. Albert Bühlmann at the University of Zürich for experimental use.',
+    characteristics: '16 tissue compartments with N₂ and He half-times. Uses M-values for ascent limits.',
+    usage: 'Research and custom implementations. Slightly more liberal than 16B/16C.',
+    differences: 'Original experimental coefficients; 16B/16C refined specific a-values for tables and computers.',
+  },
+  zhl16b: {
+    history: 'Bühlmann ZH-L 16B variant designed specifically for generating printed decompression tables.',
+    characteristics: '16 compartments, modified a-values for compartments 5-8 making it slightly more conservative.',
+    usage: 'Printed deco tables. Rarely used in modern dive computers.',
+    differences: 'More conservative than 16A in middle compartments; 16C is preferred for computers.',
+  },
+  zhl16c: {
+    history: 'Most widely used Bühlmann variant (1986+), optimized for real-time dive computer calculations.',
+    characteristics: '16 tissue compartments, gradient factors support, trimix capable. The industry standard.',
+    usage: 'Default for most dive computers (Shearwater, Suunto, etc). Best general-purpose choice.',
+    differences: 'Most conservative compartment 1 a-value. Gold standard for recreational and technical diving.',
+  },
+  zhl12: {
+    history: 'Original 1983 Bühlmann model before the 16-compartment expansion.',
+    characteristics: 'Same 16 compartments (expanded from original 12) with original coefficients.',
+    usage: 'Historical reference. Rarely used in practice today.',
+    differences: 'Predecessor to ZH-L 16A/B/C. Same structure but original coefficients.',
+  },
+  zhl6: {
+    history: 'Simplified 6-compartment Bühlmann model for basic dive computers.',
+    characteristics: 'Only 6 tissue compartments with derived a/b values. Fast computation.',
+    usage: 'Entry-level dive computers with limited processing power.',
+    differences: 'Much simpler than ZH-L 16C. Less precise for complex dive profiles.',
+  },
+  zhl8adt: {
+    history: '8-compartment adaptive model used in some Uwatec/Scubapro computers.',
+    characteristics: '8 compartments with adaptive weighting based on dive conditions.',
+    usage: 'Specific dive computer implementations (Scubapro/Uwatec).',
+    differences: 'Fewer compartments than ZH-L 16C but includes adaptive safety adjustments.',
+  },
+  vpm: {
+    history: 'Varying Permeability Model by David Yount (1980s). VPM-B adds Boyle\'s law compensation.',
+    characteristics: 'Bubble nucleation model. Tracks gas bubble formation, not just dissolved gas. Produces deeper first stops.',
+    usage: 'Technical divers preferring deeper, shorter initial stops. Popular with deep/mixed-gas diving.',
+    differences: 'Fundamentally different from Bühlmann — models bubble physics rather than dissolved gas limits.',
+  },
+  rgbm: {
+    history: 'Reduced Gradient Bubble Model by Bruce Wienke (1990s). Dual-phase approach.',
+    characteristics: 'Applies bubble reduction factors to Bühlmann M-values. More conservative for deep/long dives.',
+    usage: 'Used in Suunto and Mares dive computers. Good for repetitive diving.',
+    differences: 'Hybrid model: Bühlmann base with bubble growth factors. More conservative than pure Bühlmann.',
+  },
+  haldane: {
+    history: 'John Scott Haldane\'s original 1908 model — the foundation of ALL modern decompression theory.',
+    characteristics: '5 tissue compartments, simple 2:1 supersaturation ratio. Revolutionary for its time.',
+    usage: 'Historical/educational only. Too simple and permissive for actual diving.',
+    differences: 'Allows tissues to hold 2× ambient pressure. No gradient factors. Most permissive model.',
+  },
+  workman: {
+    history: 'Robert Workman\'s 1965 US Navy model. Introduced the M-value concept still used today.',
+    characteristics: '9 compartments with linear M-value relationships (M = M0 + ΔM × depth).',
+    usage: 'Historical US Navy tables. Foundation for Bühlmann\'s work.',
+    differences: 'First to formalize M-values. More compartments than Haldane but fewer than Bühlmann.',
+  },
+  thalmann: {
+    history: 'Edward Thalmann\'s VVAL-18 model (1980s-90s) for the US Navy.',
+    characteristics: 'Asymmetric gas kinetics: exponential uptake but linear elimination when supersaturated.',
+    usage: 'US Navy dive tables and operations. Accounts for bubble-limited off-gassing.',
+    differences: 'Unique asymmetric kinetics — off-gassing is slower than predicted by exponential models.',
+  },
+  dciem: {
+    history: 'Canadian Defence and Civil Institute of Environmental Medicine model (Kidd/Stubbs, 1960s-70s).',
+    characteristics: '4 serial compartments where gas flows through tissues in sequence, not in parallel.',
+    usage: 'Canadian military. Known for being very conservative with excellent safety record.',
+    differences: 'Serial (not parallel) compartment flow is unique. Most conservative model available.',
+  },
+};

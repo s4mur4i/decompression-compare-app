@@ -1,4 +1,5 @@
 import { ALGORITHMS } from '../utils/buhlmann';
+import { ALGORITHM_TOOLTIPS } from '../utils/algorithmTooltips';
 
 function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
   return (
@@ -53,11 +54,24 @@ export default function DiveSettings({
       
       <div className="setting-row">
         <label>Algorithm</label>
-        <select value={algorithm} onChange={(e) => onChange("algorithm", e.target.value)} className="algo-select">
-          {Object.entries(ALGORITHMS).map(([key, a]) => (
-            <option key={key} value={key}>{a.name}</option>
-          ))}
-        </select>
+        <div className="algo-select-wrapper">
+          <select value={algorithm} onChange={(e) => onChange("algorithm", e.target.value)} className="algo-select">
+            {Object.entries(ALGORITHMS).map(([key, a]) => (
+              <option key={key} value={key}>{a.name}</option>
+            ))}
+          </select>
+          {ALGORITHM_TOOLTIPS[algorithm] && (
+            <span className="algo-tooltip-trigger">
+              ℹ️
+              <div className="algo-tooltip">
+                <div className="algo-tooltip-section"><strong>History:</strong> {ALGORITHM_TOOLTIPS[algorithm].history}</div>
+                <div className="algo-tooltip-section"><strong>Key traits:</strong> {ALGORITHM_TOOLTIPS[algorithm].characteristics}</div>
+                <div className="algo-tooltip-section"><strong>When to use:</strong> {ALGORITHM_TOOLTIPS[algorithm].usage}</div>
+                <div className="algo-tooltip-section"><strong>Differs:</strong> {ALGORITHM_TOOLTIPS[algorithm].differences}</div>
+              </div>
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="setting-row">

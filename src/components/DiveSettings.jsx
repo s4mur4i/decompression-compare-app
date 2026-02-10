@@ -1,4 +1,6 @@
 import { ALGORITHMS } from '../utils/buhlmann';
+// Note: ALGORITHMS is still used here for backward compat; 
+// ALGORITHM_REGISTRY lives in App.jsx for dispatch
 
 function NumInput({ value, onChange, onBlur, min, max, step, ...props }) {
   return (

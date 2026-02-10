@@ -6,7 +6,7 @@ import DiveSummary from './components/DiveSummary';
 import DiveTable from './components/DiveTable';
 import ShareLink from './components/ShareLink';
 import { calculateDiveProfile, addAscentPhases, simpleAscent, parsePlan } from './utils/diveProfile';
-import { calculateBuhlmann, calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
+import { calculateZHL16A, calculateZHL16B, calculateZHL16C, calculateZHL12, calculateZHL6, calculateZHL8ADT } from './utils/buhlmann';
 import { calculateVPM } from './utils/vpm';
 import { calculateRGBM } from './utils/rgbm';
 import { calculateHaldane } from './utils/haldane';
@@ -14,6 +14,22 @@ import { calculateWorkman } from './utils/workman';
 import { calculateThalmann } from './utils/thalmann';
 import { calculateDCIEM } from './utils/dciem';
 import './App.css';
+
+const ALGORITHM_REGISTRY = {
+  none:     { fn: null,              name: 'No Algorithm',       description: 'Direct ascent, no deco calculation',                          trimix: false, multiGas: false, gf: false },
+  zhl16a:   { fn: calculateZHL16A,   name: 'ZH-L 16A',          description: 'Original experimental (1986). Trimix + multi-gas.',           trimix: true,  multiGas: true,  gf: true },
+  zhl16b:   { fn: calculateZHL16B,   name: 'ZH-L 16B',          description: 'For printed tables. Trimix + multi-gas.',                     trimix: true,  multiGas: true,  gf: true },
+  zhl16c:   { fn: calculateZHL16C,   name: 'ZH-L 16C',          description: 'For dive computers. Most widely used. Trimix + multi-gas.',   trimix: true,  multiGas: true,  gf: true },
+  zhl12:    { fn: calculateZHL12,    name: 'ZH-L 12',           description: 'Original 1983 version. Trimix + multi-gas.',                  trimix: true,  multiGas: true,  gf: true },
+  zhl6:     { fn: calculateZHL6,     name: 'ZH-L 6',            description: 'Simplified 6-compartment. Trimix + multi-gas.',               trimix: true,  multiGas: true,  gf: true },
+  zhl8adt:  { fn: calculateZHL8ADT,  name: 'ZH-L 8 ADT',        description: '8-compartment adaptive. Trimix + multi-gas.',                 trimix: true,  multiGas: true,  gf: true },
+  vpm:      { fn: calculateVPM,      name: 'VPM-B',             description: 'Bubble mechanics model. Deeper first stops. Nitrox only.',    trimix: false, multiGas: false, gf: true },
+  rgbm:     { fn: calculateRGBM,     name: 'RGBM',              description: 'Dual-phase bubble model. Nitrox only.',                       trimix: false, multiGas: false, gf: true },
+  haldane:  { fn: calculateHaldane,  name: 'Haldane (1908)',     description: '5 compartments, 2:1 ratio. Air/Nitrox only.',                 trimix: false, multiGas: false, gf: false },
+  workman:  { fn: calculateWorkman,  name: 'Workman (1965)',     description: 'US Navy M-values. 9 compartments. Air/Nitrox only.',          trimix: false, multiGas: false, gf: false },
+  thalmann: { fn: calculateThalmann, name: 'Thalmann VVAL-18',  description: 'US Navy asymmetric kinetics. Air/Nitrox only.',               trimix: false, multiGas: false, gf: false },
+  dciem:    { fn: calculateDCIEM,    name: 'DCIEM',             description: 'Canadian serial compartments. Very conservative. Air/Nitrox.', trimix: false, multiGas: false, gf: false },
+};
 
 function App() {
   const [stops, setStops] = useState([]);
@@ -66,21 +82,9 @@ function App() {
     gasSwitches.sort((a, b) => b.depth - a.depth);
 
     const opts = { fO2, fHe, gfLow, gfHigh, ascentRate, gasSwitches };
-
-    if (algorithm === 'zhl16a') return calculateZHL16A(phases, opts);
-    if (algorithm === 'zhl16b') return calculateZHL16B(phases, opts);
-    if (algorithm === 'zhl16c') return calculateZHL16C(phases, opts);
-    if (algorithm === 'zhl12') return calculateZHL12(phases, opts);
-    if (algorithm === 'zhl6') return calculateZHL6(phases, opts);
-    if (algorithm === 'zhl8adt') return calculateZHL8ADT(phases, opts);
-    if (algorithm === 'buhlmann') return calculateZHL16C(phases, opts);
-    if (algorithm === 'vpm') return calculateVPM(phases, opts);
-    if (algorithm === 'rgbm') return calculateRGBM(phases, opts);
-    if (algorithm === 'haldane') return calculateHaldane(phases, opts);
-    if (algorithm === 'workman') return calculateWorkman(phases, opts);
-    if (algorithm === 'thalmann') return calculateThalmann(phases, opts);
-    if (algorithm === 'dciem') return calculateDCIEM(phases, opts);
-    return null;
+    const entry = ALGORITHM_REGISTRY[algorithm];
+    if (!entry || !entry.fn) return null;
+    return entry.fn(phases, opts);
   };
 
   const calculateFull = (algorithm, fO2, fHe, gfLow, gfHigh, descentRate, ascentRate, decoGas1, decoGas2, ppO2Deco, gasSwitchTime = true) => {

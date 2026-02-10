@@ -23,7 +23,7 @@ ChartJS.register(
   annotationPlugin
 );
 
-export default function DiveChart({ profiles, modLines = [], theme = 'dark' }) {
+export default function DiveChart({ profiles, modLines = [], theme = 'dark', ceilingLines = [] }) {
   const chartRef = useRef(null);
 
   if (!profiles || profiles.length === 0 || !profiles[0]?.points || profiles[0].points.length < 2) {
@@ -99,6 +99,23 @@ export default function DiveChart({ profiles, modLines = [], theme = 'dark' }) {
       pointBackgroundColor: color,
       tension: 0,
       pointHoverRadius: 4,
+    });
+  });
+
+  // Add ceiling line datasets
+  ceilingLines.forEach((cl, index) => {
+    if (!cl.data || cl.data.length === 0) return;
+    const ceilingValues = timePoints.map(t => t < cl.data.length ? cl.data[t] : null);
+    datasets.push({
+      label: cl.label || 'Ceiling',
+      data: ceilingValues,
+      borderColor: cl.color || '#ff6b35',
+      backgroundColor: 'transparent',
+      borderWidth: 2,
+      borderDash: [6, 4],
+      pointRadius: 0,
+      fill: false,
+      tension: 0,
     });
   });
 

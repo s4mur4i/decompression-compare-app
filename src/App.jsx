@@ -14,6 +14,7 @@ import { calculateHaldane } from './utils/haldane';
 import { calculateWorkman } from './utils/workman';
 import { calculateThalmann } from './utils/thalmann';
 import { calculateDCIEM } from './utils/dciem';
+import { calculateCeilingTimeline } from './utils/ceiling';
 import './App.css';
 
 const DEFAULT_SETTINGS = {
@@ -260,6 +261,25 @@ function App() {
     return maxDepth > calcMOD(settingsB.fO2, settingsB.ppO2Max);
   }, [compareMode, settingsB, stops]);
 
+  const ceilingLines = useMemo(() => {
+    const lines = [];
+    if (resultA?.points && settingsA.algorithm !== 'none') {
+      lines.push({
+        data: calculateCeilingTimeline(resultA.points, settingsA),
+        color: '#ff6b35',
+        label: compareMode ? 'Ceiling A' : 'Ceiling',
+      });
+    }
+    if (compareMode && resultB?.points && settingsB.algorithm !== 'none') {
+      lines.push({
+        data: calculateCeilingTimeline(resultB.points, settingsB),
+        color: '#ff4081',
+        label: 'Ceiling B',
+      });
+    }
+    return lines;
+  }, [resultA, resultB, settingsA, settingsB, compareMode]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -314,6 +334,7 @@ function App() {
               { points: resultA?.points || [], color: '#4fc3f7', label: 'Dive Profile' }
             ]}
             modLines={modLines}
+            ceilingLines={ceilingLines}
           />
         </div>
 

@@ -2,6 +2,9 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// Support both custom domain (deco.szamuraj.com) and GitHub Pages subdirectory
+const base = process.env.VITE_BASE_PATH || '/'
+
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
@@ -16,8 +19,8 @@ export default defineConfig({
         theme_color: '#0a1628',
         background_color: '#0a1628',
         display: 'standalone',
-        start_url: '/decompression-compare-app/',
-        scope: '/decompression-compare-app/',
+        start_url: base,
+        scope: base,
         icons: [
           {
             src: 'icon-192.svg',
@@ -48,5 +51,5 @@ export default defineConfig({
       },
     }),
   ],
-  base: '/decompression-compare-app/',
+  base,
 })
